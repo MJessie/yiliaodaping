@@ -1660,7 +1660,7 @@
                 ensureChart(key, elementId) {
                     const element = document.getElementById(elementId);
                     if (!element) return null;
-                    
+
                     let chart = this.charts[key];
                     if (chart && chart.getDom() !== element) {
                         chart.dispose();
