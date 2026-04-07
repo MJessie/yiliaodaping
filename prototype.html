@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运维大屏高保真原型</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <style>
+        :root {
+            --bg: #06131f;
+            --bg-soft: rgba(10, 25, 42, 0.86);
+            --panel: rgba(10, 24, 40, 0.76);
+            --panel-strong: rgba(8, 20, 34, 0.94);
+            --line: rgba(94, 163, 193, 0.26);
+            --line-strong: rgba(112, 210, 228, 0.5);
+            --text: #e9f5ff;
+            --muted: #86a6bc;
+            --accent: #3ed6c6;
+            --accent-2: #7de7ff;
+            --warn: #ffca63;
+            --danger: #ff6a6a;
+            --success: #55e58a;
+            --shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+            --radius: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+            background:
+                radial-gradient(circle at top left, rgba(58, 155, 182, 0.28), transparent 28%),
+                radial-gradient(circle at 85% 16%, rgba(31, 102, 146, 0.36), transparent 25%),
+                linear-gradient(180deg, #05111d 0%, #081825 48%, #07131d 100%);
+            color: var(--text);
+            font-family: "Bahnschrift", "Segoe UI Variable Display", "Microsoft YaHei", sans-serif;
+            overflow-x: hidden;
+        }
+
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::before {
+            background-image:
+                linear-gradient(rgba(125, 231, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(125, 231, 255, 0.04) 1px, transparent 1px);
+            background-size: 36px 36px;
+            mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.95), transparent 92%);
+        }
+
+        body::after {
+            background: linear-gradient(180deg, rgba(5, 17, 29, 0) 0%, rgba(5, 17, 29, 0.38) 100%);
+        }
+
+        #app {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            padding: 28px;
+        }
+
+        .screen-shell {
+            min-height: calc(100vh - 56px);
+            border: 1px solid rgba(126, 217, 255, 0.18);
+            border-radius: 30px;
+            background: linear-gradient(180deg, rgba(7, 18, 31, 0.9), rgba(5, 13, 22, 0.96));
+            box-shadow: var(--shadow);
+            padding: 22px;
+            backdrop-filter: blur(18px);
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 14px 18px;
+            border: 1px solid rgba(123, 214, 255, 0.12);
+            border-radius: 22px;
+            background: linear-gradient(90deg, rgba(13, 32, 50, 0.86), rgba(8, 20, 35, 0.76));
+        }
+
+        .title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .title-mark {
+            width: 56px;
+            height: 56px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(64, 222, 202, 0.28), rgba(125, 231, 255, 0.08));
+            border: 1px solid rgba(125, 231, 255, 0.26);
+            display: grid;
+            place-items: center;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--accent-2);
+            box-shadow: inset 0 0 24px rgba(83, 219, 232, 0.15);
+        }
+
+        .title-copy h1 {
+            margin: 0;
+            font-size: 30px;
+            letter-spacing: 2px;
+            font-weight: 700;
+        }
+
+        .title-copy p {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+            letter-spacing: 1px;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .chip-group,
+        .segment-group {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px;
+            border-radius: 999px;
+            border: 1px solid rgba(123, 214, 255, 0.14);
+            background: rgba(8, 20, 35, 0.72);
+        }
+
+        .chip,
+        .segment {
+            border: none;
+            color: var(--muted);
+            background: transparent;
+            padding: 10px 16px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: 0.2s ease;
+        }
+
+        .chip.active,
+        .segment.active {
+            color: #04131d;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            box-shadow: 0 10px 20px rgba(62, 214, 198, 0.2);
+            font-weight: 700;
+        }
+
+        .meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 18px;
+            background: rgba(13, 34, 55, 0.8);
+            border: 1px solid rgba(123, 214, 255, 0.1);
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--success);
+            box-shadow: 0 0 0 6px rgba(85, 229, 138, 0.12);
+        }
+
+        .view {
+            display: grid;
+            gap: 18px;
+            animation: rise 0.45s ease;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .metric-card,
+        .panel,
+        .story-card,
+        .leader-row,
+        .signal-card {
+            border: 1px solid rgba(123, 214, 255, 0.14);
+            background: linear-gradient(180deg, rgba(12, 30, 48, 0.88), rgba(8, 19, 32, 0.82));
+            border-radius: var(--radius);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .metric-card {
+            position: relative;
+            overflow: hidden;
+            padding: 18px 18px 20px;
+            min-height: 146px;
+        }
+
+        .metric-card::before {
+            content: "";
+            position: absolute;
+            inset: auto -28px -36px auto;
+            width: 120px;
+            height: 120px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(125, 231, 255, 0.16), transparent 68%);
+        }
+
+        .metric-card .label {
+            color: var(--muted);
+            font-size: 13px;
+            letter-spacing: 1px;
+        }
+
+        .metric-card .value {
+            margin-top: 14px;
+            font-size: 38px;
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: 1px;
+        }
+
+        .metric-card.tone-good .value {
+            color: var(--success);
+            text-shadow: 0 0 18px rgba(85, 229, 138, 0.14);
+        }
+
+        .metric-card.tone-warn .value {
+            color: var(--warn);
+            text-shadow: 0 0 18px rgba(255, 202, 99, 0.14);
+        }
+
+        .metric-card.tone-info .value {
+            color: var(--accent-2);
+            text-shadow: 0 0 18px rgba(125, 231, 255, 0.14);
+        }
+
+        .metric-card .subline {
+            margin-top: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-weight: 700;
+        }
+
+        .trend.up.good,
+        .trend.down.good {
+            background: rgba(85, 229, 138, 0.12);
+            color: var(--success);
+        }
+
+        .trend.up.bad,
+        .trend.down.bad {
+            background: rgba(255, 106, 106, 0.12);
+            color: var(--danger);
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1.52fr 1fr;
+            gap: 18px;
+            min-height: 520px;
+        }
+
+        .panel {
+            padding: 18px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .panel-header h3 {
+            margin: 0;
+            font-size: 18px;
+            letter-spacing: 0.5px;
+        }
+
+        .panel-header p {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .panel-badge {
+            padding: 8px 12px;
+            font-size: 12px;
+            color: var(--accent-2);
+            border-radius: 999px;
+            border: 1px solid rgba(123, 214, 255, 0.16);
+            background: rgba(7, 19, 32, 0.8);
+        }
+
+        .chart {
+            width: 100%;
+            height: 100%;
+            min-height: 300px;
+        }
+
+        .map-panel {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+        }
+
+        .selected-hospital {
+            margin-top: 14px;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 14px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(123, 214, 255, 0.12);
+        }
+
+        .hospital-focus {
+            padding: 16px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(17, 46, 69, 0.86), rgba(9, 24, 38, 0.76));
+            border: 1px solid rgba(123, 214, 255, 0.12);
+        }
+
+        .hospital-focus h4,
+        .mini-stat h4,
+        .story-card h4,
+        .signal-card h4 {
+            margin: 0 0 10px;
+            font-size: 16px;
+        }
+
+        .hospital-focus .name {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .hospital-focus .tags,
+        .mini-tags,
+        .story-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .pill,
+        .mini-tags span,
+        .story-meta span {
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            color: var(--accent-2);
+            background: rgba(125, 231, 255, 0.08);
+            border: 1px solid rgba(123, 214, 255, 0.12);
+        }
+
+        .hospital-focus .desc,
+        .story-card p,
+        .signal-card p,
+        .leader-meta,
+        .small-note {
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 13px;
+        }
+
+        .mini-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .mini-stat {
+            padding: 14px 16px;
+            border-radius: 20px;
+            background: rgba(8, 20, 34, 0.82);
+            border: 1px solid rgba(123, 214, 255, 0.1);
+        }
+
+        .mini-stat .number {
+            margin-top: 8px;
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        .rank-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .leader-row {
+            display: grid;
+            grid-template-columns: 68px 1.4fr repeat(4, 0.8fr) 100px;
+            gap: 10px;
+            align-items: center;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .leader-row:hover,
+        .leader-row.active {
+            transform: translateY(-2px);
+            border-color: rgba(123, 214, 255, 0.28);
+            background: linear-gradient(180deg, rgba(16, 39, 61, 0.96), rgba(9, 22, 36, 0.9));
+        }
+
+        .rank-index {
+            width: 38px;
+            height: 38px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: rgba(125, 231, 255, 0.08);
+            color: var(--accent-2);
+            font-weight: 700;
+        }
+
+        .leader-name {
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .leader-kpi strong,
+        .highlight-value,
+        .compare-value {
+            display: block;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .leader-kpi span,
+        .compare-label {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .risk-tag {
+            justify-self: end;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .risk-tag.normal {
+            color: var(--success);
+            background: rgba(85, 229, 138, 0.12);
+        }
+
+        .risk-tag.warning {
+            color: var(--warn);
+            background: rgba(255, 202, 99, 0.12);
+        }
+
+        .risk-tag.critical {
+            color: var(--danger);
+            background: rgba(255, 106, 106, 0.14);
+        }
+
+        .hospital-layout {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .insight-grid,
+        .compare-grid,
+        .signal-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .compare-grid {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
+        .story-card,
+        .signal-card {
+            padding: 18px;
+            min-height: 170px;
+        }
+
+        .highlight-value {
+            font-size: 34px;
+            margin-bottom: 8px;
+        }
+
+        .highlight-foot {
+            margin-top: 12px;
+            color: var(--accent-2);
+            font-size: 12px;
+        }
+
+        .compare-card {
+            padding: 18px;
+            border-radius: 22px;
+            border: 1px solid rgba(123, 214, 255, 0.14);
+            background: linear-gradient(180deg, rgba(10, 24, 40, 0.9), rgba(8, 18, 32, 0.8));
+        }
+
+        .compare-card .delta {
+            margin-top: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .delta.good {
+            background: rgba(85, 229, 138, 0.12);
+            color: var(--success);
+        }
+
+        .delta.bad {
+            background: rgba(255, 106, 106, 0.12);
+            color: var(--danger);
+        }
+
+        .page-subtitle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle h2 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .ghost-button {
+            border: 1px solid rgba(123, 214, 255, 0.16);
+            background: rgba(9, 22, 36, 0.8);
+            color: var(--text);
+            border-radius: 999px;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .ghost-button:hover {
+            border-color: rgba(123, 214, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        @keyframes rise {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 1400px) {
+
+            .summary-grid,
+            .hospital-layout,
+            .compare-grid,
+            .insight-grid,
+            .signal-grid,
+            .content-grid,
+            .selected-hospital {
+                grid-template-columns: 1fr;
+            }
+
+            .leader-row {
+                grid-template-columns: 48px 1.2fr repeat(2, 1fr);
+                grid-auto-rows: auto;
+            }
+
+            .leader-row .hide-md {
+                display: none;
+            }
+        }
+
+        @media (max-width: 900px) {
+            #app {
+                padding: 14px;
+            }
+
+            .screen-shell {
+                min-height: auto;
+                padding: 14px;
+            }
+
+            .topbar,
+            .toolbar,
+            .title-wrap,
+            .page-subtitle {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .summary-grid,
+            .compare-grid,
+            .insight-grid,
+            .signal-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metric-card .value,
+            .highlight-value {
+                font-size: 30px;
+            }
+
+            .leader-row {
+                grid-template-columns: 44px 1fr;
+            }
+
+            .leader-row .leader-kpi,
+            .leader-row .risk-tag {
+                grid-column: 2;
+                justify-self: start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="screen-shell">
+            <header class="topbar">
+                <div class="title-wrap">
+                    <div class="title-mark">OPS</div>
+                    <div class="title-copy">
+                        <h1>{{ currentView === 'hq' ? '总部运维总览大屏' : selectedHospital.name + ' 运维成效展示大屏' }}</h1>
+                        <p>东软医疗运维运营中心 · 数据更新时间 {{ currentTime }} · 演示原型基于 Vue + ECharts</p>
+                    </div>
+                </div>
+                <div class="toolbar">
+                    <div class="segment-group">
+                        <button class="segment" :class="{ active: currentView === 'hq' }"
+                            @click="switchView('hq')">总部总览</button>
+                        <button class="segment" :class="{ active: currentView === 'hospital' }"
+                            @click="switchView('hospital')">医院成效</button>
+                    </div>
+                    <div class="chip-group">
+                        <button v-for="range in timeRanges" :key="range.value" class="chip"
+                            :class="{ active: selectedRange === range.value }" @click="selectedRange = range.value">{{
+                            range.label }}</button>
+                    </div>
+                    <div v-if="currentView === 'hq'" class="chip-group">
+                        <button v-for="metric in sortMetrics" :key="metric.value" class="chip"
+                            :class="{ active: sortMetric === metric.value }" @click="sortMetric = metric.value">{{
+                            metric.label }}</button>
+                    </div>
+                    <div class="meta">
+                        <span class="status-dot"></span>
+                        <span>实时刷新中</span>
+                        <span>|</span>
+                        <span>{{ currentView === 'hq' ? '全国 18 家接入医院' : selectedHospital.city + ' · ' +
+                            selectedHospital.level }}</span>
+                    </div>
+                </div>
+            </header>
+
+            <section v-if="currentView === 'hq'" class="view">
+                <div class="summary-grid">
+                    <article v-for="card in hqCards" :key="card.label" class="metric-card"
+                        :class="card.tone ? 'tone-' + card.tone : ''">
+                        <div class="label">{{ card.label }}</div>
+                        <div class="value">{{ card.value }}</div>
+                        <div class="subline">
+                            <span>{{ card.note }}</span>
+                            <span class="trend" :class="trendClass(card.trendDirection, card.trendGood)">
+                                <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span>
+                                <span>{{ card.trendText }}</span>
+                            </span>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="content-grid">
+                    <section class="panel map-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>全国医院分布与风险态势</h3>
+                                <p>点击地图医院点位进入单院运维成效大屏，地图与排行联动高亮</p>
+                            </div>
+                            <div class="panel-badge">地图状态颜色：绿 / 黄 / 红</div>
+                        </div>
+                        <div id="hq-map-chart" class="chart"></div>
+                        <div class="selected-hospital">
+                            <div class="hospital-focus">
+                                <div class="tags">
+                                    <span class="pill">已接入 {{ selectedHospital.accessDays }} 天</span>
+                                    <span class="pill">{{ selectedHospital.region }}</span>
+                                    <span class="pill">{{ statusText(selectedHospital.status) }}</span>
+                                </div>
+                                <div class="name">{{ selectedHospital.name }}</div>
+                                <div class="desc">{{ selectedHospital.brief }}</div>
+                            </div>
+                            <div class="mini-grid">
+                                <div class="mini-stat">
+                                    <h4>活动告警</h4>
+                                    <div class="number">{{ selectedHospital.activeAlerts }}</div>
+                                    <div class="small-note">较昨日 {{ selectedHospital.alertDelta > 0 ? '+' : '' }}{{
+                                        selectedHospital.alertDelta }}，值班高峰集中于 09:00-11:00</div>
+                                </div>
+                                <div class="mini-stat">
+                                    <h4>MTTR</h4>
+                                    <div class="number">{{ selectedHospital.mttr }}</div>
+                                    <div class="small-note">恢复效率优于全国均值 {{ selectedHospital.mttrAdvantage }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>医院横向对比</h3>
+                                <p>默认按未处理告警数降序，可切换排序维度</p>
+                            </div>
+                            <div class="panel-badge">当前排序：{{ activeSortLabel }}</div>
+                        </div>
+                        <div class="rank-list">
+                            <div v-for="(hospital, index) in sortedHospitals" :key="hospital.id" class="leader-row"
+                                :class="{ active: hospital.id === selectedHospital.id }"
+                                @click="openHospital(hospital.id)">
+                                <div class="rank-index">{{ String(index + 1).padStart(2, '0') }}</div>
+                                <div>
+                                    <div class="leader-name">{{ hospital.name }}</div>
+                                    <div class="leader-meta">{{ hospital.city }} · {{ hospital.level }} · {{
+                                        hospital.owner }}</div>
+                                </div>
+                                <div class="leader-kpi">
+                                    <strong>{{ hospital.activeAlerts }}</strong>
+                                    <span>活动告警</span>
+                                </div>
+                                <div class="leader-kpi">
+                                    <strong>{{ hospital.unhandledAlerts }}</strong>
+                                    <span>未处理</span>
+                                </div>
+                                <div class="leader-kpi hide-md">
+                                    <strong>{{ hospital.mtta }}</strong>
+                                    <span>MTTA</span>
+                                </div>
+                                <div class="leader-kpi hide-md">
+                                    <strong>{{ hospital.mttr }}</strong>
+                                    <span>MTTR</span>
+                                </div>
+                                <div class="risk-tag" :class="hospital.status">{{ statusText(hospital.status) }}</div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="hospital-layout">
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>核心效率分布</h3>
+                                <p>总部视角观察各院告警响应与恢复水平</p>
+                            </div>
+                            <div class="panel-badge">单位：分钟</div>
+                        </div>
+                        <div id="hq-compare-chart" class="chart"></div>
+                    </section>
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>告警闭环结构</h3>
+                                <p>活动、未处理、已闭环工单分布</p>
+                            </div>
+                            <div class="panel-badge">全国汇总</div>
+                        </div>
+                        <div id="hq-closure-chart" class="chart"></div>
+                    </section>
+                </div>
+            </section>
+
+            <section v-else class="view">
+                <div class="page-subtitle">
+                    <h2>{{ selectedHospital.name }} · 单院运维成效视图</h2>
+                    <button class="ghost-button" @click="switchView('hq')">返回总部总览</button>
+                </div>
+
+                <div class="summary-grid">
+                    <article v-for="card in hospitalCards" :key="card.label" class="metric-card"
+                        :class="card.tone ? 'tone-' + card.tone : ''">
+                        <div class="label">{{ card.label }}</div>
+                        <div class="value">{{ card.value }}</div>
+                        <div class="subline">
+                            <span>{{ card.note }}</span>
+                            <span class="trend" :class="trendClass(card.trendDirection, card.trendGood)">
+                                <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span>
+                                <span>{{ card.trendText }}</span>
+                            </span>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="hospital-layout">
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>近 7 天告警趋势</h3>
+                                <p>每日告警量折线图，观察事件高发日期</p>
+                            </div>
+                            <div class="panel-badge">{{ selectedHospital.city }}</div>
+                        </div>
+                        <div id="hospital-alert-chart" class="chart"></div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>近 7 天响应时长趋势</h3>
+                                <p>从告警生成到进入处理中的平均时长</p>
+                            </div>
+                            <div class="panel-badge">目标 SLA 15 分钟</div>
+                        </div>
+                        <div id="hospital-response-chart" class="chart"></div>
+                    </section>
+                </div>
+
+                <div class="compare-grid">
+                    <article v-for="item in compareCards" :key="item.label" class="compare-card">
+                        <div class="compare-label">{{ item.label }}</div>
+                        <div class="compare-value">{{ item.value }}</div>
+                        <div class="small-note">{{ item.period }}</div>
+                        <div class="delta" :class="item.good ? 'good' : 'bad'">
+                            <span>{{ item.direction === 'up' ? '↑' : '↓' }}</span>
+                            <span>{{ item.delta }}</span>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="hospital-layout">
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>超时率 3 个月下降趋势</h3>
+                                <p>用于汇报持续改进成果，突出环比下降</p>
+                            </div>
+                            <div class="panel-badge">按月统计</div>
+                        </div>
+                        <div id="hospital-timeout-chart" class="chart"></div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>成效亮点</h3>
+                                <p>适合在院内周会、月会或领导汇报中直接展示</p>
+                            </div>
+                            <div class="panel-badge">价值输出</div>
+                        </div>
+                        <div class="insight-grid">
+                            <article class="story-card">
+                                <div class="story-meta"><span>重大故障避免</span></div>
+                                <div class="highlight-value">{{ selectedHospital.preventedMajor }}</div>
+                                <p>通过提前告警、主动处置和夜间巡检，本周期共阻断 {{ selectedHospital.preventedMajor }} 次潜在重大故障升级。</p>
+                                <div class="highlight-foot">主动运维贡献度高于上周期 {{ selectedHospital.preventedMajorDelta }}
+                                </div>
+                            </article>
+                            <article class="story-card">
+                                <div class="story-meta"><span>夜间值班保障</span></div>
+                                <div class="highlight-value">{{ selectedHospital.nightRate }}</div>
+                                <p>夜班时段 22:00-06:00 告警响应达标率保持高位，满足院领导对核心系统夜间稳定运行要求。</p>
+                                <div class="highlight-foot">夜班值班体系稳定，连续 {{ selectedHospital.nightStableDays }} 天无严重漏响
+                                </div>
+                            </article>
+                            <article class="story-card">
+                                <div class="story-meta"><span>闭环效率</span></div>
+                                <div class="highlight-value">{{ selectedHospital.closureRate }}</div>
+                                <p>工单闭环率持续高于集团基线，响应链路完整，适合作为院方汇报中的核心成绩指标。</p>
+                                <div class="highlight-foot">本月较上月 {{ selectedHospital.closureDelta }}</div>
+                            </article>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="signal-grid">
+                    <article class="signal-card">
+                        <h4>系统稳定性说明</h4>
+                        <div class="mini-tags"><span>核心系统可用率</span><span>{{ selectedHospital.availability }}</span>
+                        </div>
+                        <p>近 30 天关键业务系统整体稳定，放疗、影像及门诊接口可用率维持在高位，满足 PRD 中对绿色阈值的要求。</p>
+                    </article>
+                    <article class="signal-card">
+                        <h4>值班与响应说明</h4>
+                        <div class="mini-tags"><span>平均响应</span><span>{{ selectedHospital.responseAvg }}</span></div>
+                        <p>晚间重点依赖值班群组首响与自动升级策略，当前平均响应时长较上周期继续优化，可直接作为服务能力证明。</p>
+                    </article>
+                    <article class="signal-card">
+                        <h4>管理建议</h4>
+                        <div class="mini-tags"><span>建议方向</span><span>{{ selectedHospital.suggestionTag }}</span></div>
+                        <p>{{ selectedHospital.suggestion }}</p>
+                    </article>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    currentView: 'hq',
+                    selectedRange: '30d',
+                    sortMetric: 'unhandledAlerts',
+                    currentTime: '',
+                    charts: {},
+                    timeRanges: [
+                        { label: '近 7 天', value: '7d' },
+                        { label: '近 30 天', value: '30d' },
+                        { label: '自定义', value: 'custom' }
+                    ],
+                    sortMetrics: [
+                        { label: '未处理告警', value: 'unhandledAlerts' },
+                        { label: '活动告警', value: 'activeAlerts' },
+                        { label: 'MTTA', value: 'mttaValue' },
+                        { label: 'MTTR', value: 'mttrValue' }
+                    ],
+                    selectedHospitalId: 'shanghai',
+                    hospitals: [
+                        {
+                            id: 'shanghai',
+                            name: '上海瑞和医院',
+                            city: '上海',
+                            level: '三级甲等',
+                            region: '华东',
+                            owner: '总部直属',
+                            status: 'warning',
+                            coord: [121.47, 31.23],
+                            accessDays: 412,
+                            activeAlerts: 24,
+                            unhandledAlerts: 8,
+                            mtta: '12 分钟',
+                            mttr: '42 分钟',
+                            mttaValue: 12,
+                            mttrValue: 42,
+                            alertDelta: 3,
+                            mttrAdvantage: '18% ',
+                            brief: '影像、HIS 与集成平台整体稳定，夜班自动派单执行较好，但门诊高峰仍存在接口类未处理告警积压。',
+                            availability: '99.94%',
+                            closureRate: '96.8%',
+                            responseAvg: '11 分钟',
+                            recoveryAvg: '46 分钟',
+                            timeoutRate: '4.2%',
+                            preventedMajor: 6,
+                            preventedMajorDelta: '25%',
+                            nightRate: '98.6%',
+                            nightStableDays: 46,
+                            closureDelta: '提升 2.4%',
+                            suggestionTag: '优化门诊高峰',
+                            suggestion: '建议继续优化门诊收费与预约链路的监控告警分组，压缩重复告警量，提升高峰期处理聚焦度。',
+                            alertTrend: [18, 22, 19, 24, 20, 17, 16],
+                            responseTrend: [13, 12, 11, 15, 10, 9, 8],
+                            timeoutTrend: [8.6, 6.1, 4.2],
+                            weeklyCompare: {
+                                alert: { value: '136', delta: '下降 9%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                response: { value: '11 分钟', delta: '下降 15%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                timeout: { value: '4.2%', delta: '下降 1.1%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                availability: { value: '99.94%', delta: '提升 0.06%', direction: 'up', good: true, period: '本月 vs 上月' },
+                                closure: { value: '96.8%', delta: '提升 2.4%', direction: 'up', good: true, period: '本月 vs 上月' }
+                            }
+                        },
+                        {
+                            id: 'beijing',
+                            name: '北京同创医院',
+                            city: '北京',
+                            level: '三级甲等',
+                            region: '华北',
+                            owner: '区域中心',
+                            status: 'normal',
+                            coord: [116.4, 39.9],
+                            accessDays: 560,
+                            activeAlerts: 12,
+                            unhandledAlerts: 3,
+                            mtta: '8 分钟',
+                            mttr: '31 分钟',
+                            mttaValue: 8,
+                            mttrValue: 31,
+                            alertDelta: -2,
+                            mttrAdvantage: '32%',
+                            brief: '核心系统稳定性优秀，院内运维流程成熟，具备作为区域样板单位输出的基础。',
+                            availability: '99.98%',
+                            closureRate: '98.9%',
+                            responseAvg: '8 分钟',
+                            recoveryAvg: '31 分钟',
+                            timeoutRate: '2.1%',
+                            preventedMajor: 8,
+                            preventedMajorDelta: '14%',
+                            nightRate: '99.4%',
+                            nightStableDays: 73,
+                            closureDelta: '提升 1.1%',
+                            suggestionTag: '标准化复制',
+                            suggestion: '建议将该院的自动升级与夜班值守流程沉淀成集团模板，用于复制到异常较多的区域医院。',
+                            alertTrend: [12, 11, 13, 9, 10, 8, 9],
+                            responseTrend: [9, 8, 8, 7, 8, 7, 7],
+                            timeoutTrend: [3.6, 2.8, 2.1],
+                            weeklyCompare: {
+                                alert: { value: '72', delta: '下降 6%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                response: { value: '8 分钟', delta: '下降 11%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                timeout: { value: '2.1%', delta: '下降 0.7%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                availability: { value: '99.98%', delta: '提升 0.03%', direction: 'up', good: true, period: '本月 vs 上月' },
+                                closure: { value: '98.9%', delta: '提升 1.1%', direction: 'up', good: true, period: '本月 vs 上月' }
+                            }
+                        },
+                        {
+                            id: 'chengdu',
+                            name: '成都仁济医院',
+                            city: '成都',
+                            level: '三级医院',
+                            region: '西南',
+                            owner: '区域中心',
+                            status: 'critical',
+                            coord: [104.06, 30.67],
+                            accessDays: 287,
+                            activeAlerts: 31,
+                            unhandledAlerts: 11,
+                            mtta: '18 分钟',
+                            mttr: '58 分钟',
+                            mttaValue: 18,
+                            mttrValue: 58,
+                            alertDelta: 6,
+                            mttrAdvantage: '-12%',
+                            brief: '近期数据库与集成接口异常多发，虽然闭环速度提升，但未处理告警仍处于高位，需要总部重点关注。',
+                            availability: '99.86%',
+                            closureRate: '93.2%',
+                            responseAvg: '18 分钟',
+                            recoveryAvg: '59 分钟',
+                            timeoutRate: '7.4%',
+                            preventedMajor: 4,
+                            preventedMajorDelta: '10%',
+                            nightRate: '94.1%',
+                            nightStableDays: 18,
+                            closureDelta: '提升 0.8%',
+                            suggestionTag: '数据库专项',
+                            suggestion: '建议优先安排数据库与接口链路专项治理，收敛重复故障源，再同步优化夜班升级机制。',
+                            alertTrend: [25, 29, 27, 31, 33, 30, 28],
+                            responseTrend: [20, 19, 18, 17, 19, 17, 16],
+                            timeoutTrend: [10.2, 8.6, 7.4],
+                            weeklyCompare: {
+                                alert: { value: '203', delta: '上升 12%', direction: 'up', good: false, period: '本周 vs 上周' },
+                                response: { value: '18 分钟', delta: '下降 7%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                timeout: { value: '7.4%', delta: '下降 1.2%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                availability: { value: '99.86%', delta: '下降 0.04%', direction: 'down', good: false, period: '本月 vs 上月' },
+                                closure: { value: '93.2%', delta: '提升 0.8%', direction: 'up', good: true, period: '本月 vs 上月' }
+                            }
+                        },
+                        {
+                            id: 'guangzhou',
+                            name: '广州清源医院',
+                            city: '广州',
+                            level: '三级甲等',
+                            region: '华南',
+                            owner: '总部直属',
+                            status: 'warning',
+                            coord: [113.27, 23.13],
+                            accessDays: 368,
+                            activeAlerts: 19,
+                            unhandledAlerts: 6,
+                            mtta: '10 分钟',
+                            mttr: '39 分钟',
+                            mttaValue: 10,
+                            mttrValue: 39,
+                            alertDelta: 1,
+                            mttrAdvantage: '21%',
+                            brief: '住院与检验链路运行稳定，接口抖动偶发，需要继续压低超时率以提升展示成效。',
+                            availability: '99.92%',
+                            closureRate: '95.6%',
+                            responseAvg: '10 分钟',
+                            recoveryAvg: '39 分钟',
+                            timeoutRate: '4.8%',
+                            preventedMajor: 5,
+                            preventedMajorDelta: '18%',
+                            nightRate: '97.8%',
+                            nightStableDays: 39,
+                            closureDelta: '提升 1.7%',
+                            suggestionTag: '压降超时率',
+                            suggestion: '建议针对检验设备接口超时进行告警分级，减少非关键时段的派单拥堵，进一步压低超时工单占比。',
+                            alertTrend: [16, 17, 18, 21, 19, 17, 18],
+                            responseTrend: [12, 11, 10, 10, 9, 10, 9],
+                            timeoutTrend: [6.3, 5.4, 4.8],
+                            weeklyCompare: {
+                                alert: { value: '126', delta: '上升 3%', direction: 'up', good: false, period: '本周 vs 上周' },
+                                response: { value: '10 分钟', delta: '下降 9%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                timeout: { value: '4.8%', delta: '下降 0.6%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                availability: { value: '99.92%', delta: '提升 0.02%', direction: 'up', good: true, period: '本月 vs 上月' },
+                                closure: { value: '95.6%', delta: '提升 1.7%', direction: 'up', good: true, period: '本月 vs 上月' }
+                            }
+                        },
+                        {
+                            id: 'wuhan',
+                            name: '武汉协宁医院',
+                            city: '武汉',
+                            level: '三级医院',
+                            region: '华中',
+                            owner: '区域中心',
+                            status: 'normal',
+                            coord: [114.31, 30.52],
+                            accessDays: 322,
+                            activeAlerts: 14,
+                            unhandledAlerts: 4,
+                            mtta: '9 分钟',
+                            mttr: '35 分钟',
+                            mttaValue: 9,
+                            mttrValue: 35,
+                            alertDelta: -1,
+                            mttrAdvantage: '26%',
+                            brief: '工单闭环与夜班响应均表现稳定，适合作为中部区域基线医院。',
+                            availability: '99.96%',
+                            closureRate: '97.3%',
+                            responseAvg: '9 分钟',
+                            recoveryAvg: '35 分钟',
+                            timeoutRate: '3.1%',
+                            preventedMajor: 7,
+                            preventedMajorDelta: '22%',
+                            nightRate: '98.8%',
+                            nightStableDays: 61,
+                            closureDelta: '提升 1.9%',
+                            suggestionTag: '保持基线',
+                            suggestion: '建议维持当前排班机制，并将关键工单模板复用到新接入医院，加快服务同质化。',
+                            alertTrend: [11, 13, 12, 14, 13, 12, 11],
+                            responseTrend: [10, 9, 9, 9, 8, 8, 8],
+                            timeoutTrend: [4.4, 3.7, 3.1],
+                            weeklyCompare: {
+                                alert: { value: '86', delta: '下降 4%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                response: { value: '9 分钟', delta: '下降 10%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                timeout: { value: '3.1%', delta: '下降 0.5%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                availability: { value: '99.96%', delta: '提升 0.01%', direction: 'up', good: true, period: '本月 vs 上月' },
+                                closure: { value: '97.3%', delta: '提升 1.9%', direction: 'up', good: true, period: '本月 vs 上月' }
+                            }
+                        },
+                        {
+                            id: 'xian',
+                            name: '西安安澜医院',
+                            city: '西安',
+                            level: '三级医院',
+                            region: '西北',
+                            owner: '区域合作',
+                            status: 'warning',
+                            coord: [108.95, 34.27],
+                            accessDays: 196,
+                            activeAlerts: 22,
+                            unhandledAlerts: 7,
+                            mtta: '14 分钟',
+                            mttr: '47 分钟',
+                            mttaValue: 14,
+                            mttrValue: 47,
+                            alertDelta: 2,
+                            mttrAdvantage: '9%',
+                            brief: '设备类与接口类告警偏多，夜班达标率改善明显，但日间峰值处理仍有优化空间。',
+                            availability: '99.90%',
+                            closureRate: '94.7%',
+                            responseAvg: '14 分钟',
+                            recoveryAvg: '47 分钟',
+                            timeoutRate: '5.3%',
+                            preventedMajor: 4,
+                            preventedMajorDelta: '8%',
+                            nightRate: '96.2%',
+                            nightStableDays: 27,
+                            closureDelta: '提升 1.2%',
+                            suggestionTag: '优化峰值分流',
+                            suggestion: '建议在白天高峰引入二线支援和工单优先级拆分，先降低未处理告警堆积。',
+                            alertTrend: [18, 20, 21, 22, 24, 21, 20],
+                            responseTrend: [16, 15, 14, 14, 13, 13, 12],
+                            timeoutTrend: [7.0, 6.1, 5.3],
+                            weeklyCompare: {
+                                alert: { value: '146', delta: '上升 5%', direction: 'up', good: false, period: '本周 vs 上周' },
+                                response: { value: '14 分钟', delta: '下降 8%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                timeout: { value: '5.3%', delta: '下降 0.8%', direction: 'down', good: true, period: '本周 vs 上周' },
+                                availability: { value: '99.90%', delta: '持平', direction: 'up', good: true, period: '本月 vs 上月' },
+                                closure: { value: '94.7%', delta: '提升 1.2%', direction: 'up', good: true, period: '本月 vs 上月' }
+                            }
+                        }
+                    ]
+                };
+            },
+            computed: {
+                selectedHospital() {
+                    return this.hospitals.find((item) => item.id === this.selectedHospitalId) || this.hospitals[0];
+                },
+                activeSortLabel() {
+                    const metric = this.sortMetrics.find((item) => item.value === this.sortMetric);
+                    return metric ? metric.label : '未处理告警';
+                },
+                sortedHospitals() {
+                    return [...this.hospitals].sort((first, second) => {
+                        const a = first[this.sortMetric];
+                        const b = second[this.sortMetric];
+                        return b - a;
+                    });
+                },
+                hqCards() {
+                    const active = this.hospitals.reduce((sum, item) => sum + item.activeAlerts, 0);
+                    const abnormal = this.hospitals.filter((item) => item.status !== 'normal').length;
+                    const unhandled = this.hospitals.reduce((sum, item) => sum + item.unhandledAlerts, 0);
+                    const fast = this.hospitals.filter((item) => item.mttaValue <= 10).length;
+                    return [
+                        { label: '接入医院总数', value: '18', note: '已完成全国重点区域布点', trendDirection: 'up', trendGood: true, trendText: '本季新增 3 家', tone: 'info' },
+                        { label: '异常医院数', value: String(abnormal).padStart(2, '0'), note: '黄色 / 红色医院需要重点跟踪', trendDirection: 'down', trendGood: true, trendText: '较上周减少 2 家', tone: 'warn' },
+                        { label: '全国活动告警', value: String(active), note: '未处理告警 ' + unhandled + ' 条', trendDirection: 'down', trendGood: true, trendText: '环比下降 11%', tone: 'info' },
+                        { label: '快速响应医院', value: String(fast), note: 'MTTA ≤ 10 分钟', trendDirection: 'up', trendGood: true, trendText: '达标率 67%', tone: 'good' }
+                    ];
+                },
+                hospitalCards() {
+                    const hospital = this.selectedHospital;
+                    const availabilityValue = Number.parseFloat(hospital.availability);
+                    return [
+                        { label: '核心系统平均可用率', value: hospital.availability, note: '近 30 天整体可用', trendDirection: hospital.weeklyCompare.availability.direction, trendGood: hospital.weeklyCompare.availability.good, trendText: hospital.weeklyCompare.availability.delta, tone: availabilityValue >= 99.9 ? 'good' : 'warn' },
+                        { label: '问题闭环率', value: hospital.closureRate, note: '已关闭工单 / 总工单', trendDirection: hospital.weeklyCompare.closure.direction, trendGood: hospital.weeklyCompare.closure.good, trendText: hospital.weeklyCompare.closure.delta, tone: 'good' },
+                        { label: '平均响应时长', value: hospital.responseAvg, note: '告警生成至处理中', trendDirection: hospital.weeklyCompare.response.direction, trendGood: hospital.weeklyCompare.response.good, trendText: hospital.weeklyCompare.response.delta, tone: 'info' },
+                        { label: '平均恢复时长', value: hospital.recoveryAvg, note: '告警生成至关闭', trendDirection: 'down', trendGood: true, trendText: '较上月下降 13%', tone: 'info' },
+                        { label: '超时率', value: hospital.timeoutRate, note: '超时工单 / 总工单', trendDirection: hospital.weeklyCompare.timeout.direction, trendGood: hospital.weeklyCompare.timeout.good, trendText: hospital.weeklyCompare.timeout.delta, tone: Number.parseFloat(hospital.timeoutRate) <= 5 ? 'good' : 'warn' }
+                    ];
+                },
+                compareCards() {
+                    const compare = this.selectedHospital.weeklyCompare;
+                    return [
+                        { label: '本周告警量', value: compare.alert.value, delta: compare.alert.delta, direction: compare.alert.direction, good: compare.alert.good, period: compare.alert.period },
+                        { label: '本周响应时长', value: compare.response.value, delta: compare.response.delta, direction: compare.response.direction, good: compare.response.good, period: compare.response.period },
+                        { label: '本周超时率', value: compare.timeout.value, delta: compare.timeout.delta, direction: compare.timeout.direction, good: compare.timeout.good, period: compare.timeout.period },
+                        { label: '本月可用率', value: compare.availability.value, delta: compare.availability.delta, direction: compare.availability.direction, good: compare.availability.good, period: compare.availability.period },
+                        { label: '本月闭环率', value: compare.closure.value, delta: compare.closure.delta, direction: compare.closure.direction, good: compare.closure.good, period: compare.closure.period }
+                    ];
+                }
+            },
+            watch: {
+                currentView() {
+                    this.$nextTick(() => this.renderCharts());
+                },
+                selectedRange() {
+                    this.$nextTick(() => this.renderCharts());
+                },
+                sortMetric() {
+                    this.$nextTick(() => this.renderCharts());
+                },
+                selectedHospitalId() {
+                    this.$nextTick(() => this.renderCharts());
+                }
+            },
+            mounted() {
+                this.updateTime();
+                this.timer = window.setInterval(this.updateTime, 1000);
+                window.addEventListener('resize', this.handleResize);
+                this.$nextTick(() => this.renderCharts());
+            },
+            beforeUnmount() {
+                window.clearInterval(this.timer);
+                window.removeEventListener('resize', this.handleResize);
+                Object.values(this.charts).forEach((chart) => chart.dispose());
+            },
+            methods: {
+                updateTime() {
+                    const now = new Date();
+                    const pad = (value) => String(value).padStart(2, '0');
+                    this.currentTime = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+                },
+                switchView(view) {
+                    this.currentView = view;
+                },
+                openHospital(id) {
+                    this.selectedHospitalId = id;
+                    this.currentView = 'hospital';
+                },
+                statusText(status) {
+                    if (status === 'normal') return '运行正常';
+                    if (status === 'warning') return '重点关注';
+                    return '高风险';
+                },
+                trendClass(direction, good) {
+                    return [direction, good ? 'good' : 'bad'];
+                },
+                handleResize() {
+                    Object.values(this.charts).forEach((chart) => chart && chart.resize());
+                },
+                ensureChart(key, elementId) {
+                    const element = document.getElementById(elementId);
+                    if (!element) return null;
+                    if (!this.charts[key]) {
+                        this.charts[key] = echarts.init(element, null, { renderer: 'canvas' });
+                    }
+                    return this.charts[key];
+                },
+                renderCharts() {
+                    if (this.currentView === 'hq') {
+                        this.renderMapChart();
+                        this.renderHqCompareChart();
+                        this.renderClosureChart();
+                    } else {
+                        this.renderHospitalAlertChart();
+                        this.renderHospitalResponseChart();
+                        this.renderHospitalTimeoutChart();
+                    }
+                },
+                async renderMapChart() {
+                    const chart = this.ensureChart('hqMap', 'hq-map-chart');
+                    if (!chart) return;
+
+                    const scatterData = this.hospitals.map((item) => ({
+                        name: item.name,
+                        value: [...item.coord, item.activeAlerts],
+                        hospitalId: item.id,
+                        status: item.status,
+                        city: item.city,
+                        unhandledAlerts: item.unhandledAlerts,
+                        mtta: item.mtta,
+                        mttr: item.mttr
+                    }));
+
+                    const colorMap = { normal: '#55e58a', warning: '#ffca63', critical: '#ff6a6a' };
+
+                    try {
+                        const response = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json');
+                        const chinaJson = await response.json();
+                        echarts.registerMap('china-hospital-board', chinaJson);
+                        chart.off('click');
+                        chart.setOption({
+                            backgroundColor: 'transparent',
+                            tooltip: {
+                                trigger: 'item',
+                                backgroundColor: 'rgba(7, 19, 32, 0.96)',
+                                borderColor: 'rgba(123,214,255,0.2)',
+                                textStyle: { color: '#e9f5ff' },
+                                formatter: (params) => {
+                                    if (!params.data) return params.name;
+                                    const data = params.data;
+                                    return [
+                                        '<strong>' + data.name + '</strong>',
+                                        data.city + ' · ' + this.statusText(data.status),
+                                        '活动告警：' + data.value[2],
+                                        '未处理：' + data.unhandledAlerts,
+                                        'MTTA：' + data.mtta,
+                                        'MTTR：' + data.mttr
+                                    ].join('<br>');
+                                }
+                            },
+                            geo: {
+                                map: 'china-hospital-board',
+                                roam: true,
+                                zoom: 1.08,
+                                scaleLimit: { min: 1, max: 4 },
+                                itemStyle: {
+                                    areaColor: '#12314d',
+                                    borderColor: '#5fbdd6',
+                                    borderWidth: 0.8,
+                                    shadowColor: 'rgba(0, 0, 0, 0.2)',
+                                    shadowBlur: 10
+                                },
+                                emphasis: {
+                                    itemStyle: {
+                                        areaColor: '#1d4b72'
+                                    }
+                                }
+                            },
+                            series: [
+                                {
+                                    type: 'effectScatter',
+                                    coordinateSystem: 'geo',
+                                    data: scatterData,
+                                    symbolSize: (value) => Math.max(12, Math.min(26, 8 + value[2] / 2)),
+                                    rippleEffect: { scale: 4, brushType: 'stroke' },
+                                    itemStyle: {
+                                        color: (params) => colorMap[params.data.status],
+                                        shadowBlur: 18,
+                                        shadowColor: 'rgba(125, 231, 255, 0.35)'
+                                    },
+                                    label: {
+                                        show: true,
+                                        formatter: '{b}',
+                                        position: 'right',
+                                        color: '#dff7ff',
+                                        fontSize: 11
+                                    }
+                                }
+                            ]
+                        });
+                        chart.on('click', (params) => {
+                            if (params.data && params.data.hospitalId) {
+                                this.openHospital(params.data.hospitalId);
+                            }
+                        });
+                    } catch (error) {
+                        chart.setOption({
+                            xAxis: {
+                                type: 'value',
+                                min: 70,
+                                max: 135,
+                                splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } },
+                                axisLabel: { color: '#86a6bc' }
+                            },
+                            yAxis: {
+                                type: 'value',
+                                min: 15,
+                                max: 55,
+                                splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } },
+                                axisLabel: { color: '#86a6bc' }
+                            },
+                            tooltip: {
+                                trigger: 'item',
+                                backgroundColor: 'rgba(7, 19, 32, 0.96)',
+                                borderColor: 'rgba(123,214,255,0.2)',
+                                textStyle: { color: '#e9f5ff' }
+                            },
+                            graphic: [{
+                                type: 'text',
+                                left: 'center',
+                                top: 10,
+                                style: {
+                                    text: '地图数据加载失败，当前显示医院分布示意图',
+                                    fill: '#86a6bc',
+                                    fontSize: 12
+                                }
+                            }],
+                            series: [{
+                                type: 'scatter',
+                                data: scatterData.map((item) => ({ name: item.name, value: [item.value[0], item.value[1], item.value[2]], hospitalId: item.hospitalId, status: item.status })),
+                                symbolSize: (value) => Math.max(12, Math.min(26, 8 + value[2] / 2)),
+                                itemStyle: { color: (params) => colorMap[params.data.status] },
+                                label: { show: true, formatter: '{b}', position: 'right', color: '#dff7ff', fontSize: 11 }
+                            }]
+                        });
+                        chart.off('click');
+                        chart.on('click', (params) => {
+                            if (params.data && params.data.hospitalId) {
+                                this.openHospital(params.data.hospitalId);
+                            }
+                        });
+                    }
+                },
+                renderHqCompareChart() {
+                    const chart = this.ensureChart('hqCompare', 'hq-compare-chart');
+                    if (!chart) return;
+                    const names = this.sortedHospitals.map((item) => item.city);
+                    chart.setOption({
+                        tooltip: { trigger: 'axis' },
+                        legend: { top: 0, right: 0, textStyle: { color: '#c8e5f5' } },
+                        grid: { left: 45, right: 20, bottom: 30, top: 40 },
+                        xAxis: {
+                            type: 'category',
+                            data: names,
+                            axisLabel: { color: '#86a6bc' },
+                            axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
+                        },
+                        yAxis: {
+                            type: 'value',
+                            axisLabel: { color: '#86a6bc' },
+                            splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
+                        },
+                        series: [
+                            {
+                                name: 'MTTA',
+                                type: 'bar',
+                                barWidth: 16,
+                                data: this.sortedHospitals.map((item) => item.mttaValue),
+                                itemStyle: { color: '#36d8c6', borderRadius: [8, 8, 0, 0] }
+                            },
+                            {
+                                name: 'MTTR',
+                                type: 'line',
+                                smooth: true,
+                                symbolSize: 8,
+                                data: this.sortedHospitals.map((item) => item.mttrValue),
+                                lineStyle: { color: '#ffca63', width: 3 },
+                                itemStyle: { color: '#ffca63' },
+                                areaStyle: { color: 'rgba(255, 202, 99, 0.12)' }
+                            }
+                        ]
+                    });
+                },
+                renderClosureChart() {
+                    const chart = this.ensureChart('hqClosure', 'hq-closure-chart');
+                    if (!chart) return;
+                    const active = this.hospitals.reduce((sum, item) => sum + item.activeAlerts, 0);
+                    const unhandled = this.hospitals.reduce((sum, item) => sum + item.unhandledAlerts, 0);
+                    const closed = 426;
+                    chart.setOption({
+                        tooltip: { trigger: 'item' },
+                        legend: { bottom: 0, textStyle: { color: '#c8e5f5' } },
+                        series: [{
+                            type: 'pie',
+                            radius: ['52%', '74%'],
+                            center: ['50%', '46%'],
+                            label: { color: '#e9f5ff', formatter: '{b}\n{d}%' },
+                            labelLine: { lineStyle: { color: 'rgba(123,214,255,0.25)' } },
+                            itemStyle: { borderColor: '#081825', borderWidth: 4 },
+                            data: [
+                                { value: closed, name: '已闭环工单', itemStyle: { color: '#3ed6c6' } },
+                                { value: active, name: '活动告警', itemStyle: { color: '#ffca63' } },
+                                { value: unhandled, name: '未处理告警', itemStyle: { color: '#ff6a6a' } }
+                            ]
+                        }],
+                        graphic: [{
+                            type: 'text',
+                            left: 'center',
+                            top: '39%',
+                            style: {
+                                text: '闭环率\n96.2%',
+                                textAlign: 'center',
+                                fill: '#e9f5ff',
+                                fontSize: 20,
+                                fontWeight: 700
+                            }
+                        }]
+                    });
+                },
+                renderHospitalAlertChart() {
+                    const chart = this.ensureChart('hospitalAlert', 'hospital-alert-chart');
+                    if (!chart) return;
+                    const rangeLabel = this.selectedRange === '7d' ? '近 7 天' : this.selectedRange === 'custom' ? '自定义周期' : '近 30 天口径展示近 7 日走势';
+                    chart.setOption({
+                        tooltip: { trigger: 'axis' },
+                        grid: { left: 45, right: 20, top: 35, bottom: 30 },
+                        xAxis: {
+                            type: 'category',
+                            data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                            axisLabel: { color: '#86a6bc' },
+                            axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
+                        },
+                        yAxis: {
+                            type: 'value',
+                            axisLabel: { color: '#86a6bc' },
+                            splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
+                        },
+                        series: [{
+                            name: rangeLabel,
+                            type: 'line',
+                            smooth: true,
+                            symbolSize: 9,
+                            data: this.selectedHospital.alertTrend,
+                            lineStyle: { color: '#7de7ff', width: 3 },
+                            itemStyle: { color: '#7de7ff' },
+                            areaStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: 'rgba(125, 231, 255, 0.38)' },
+                                    { offset: 1, color: 'rgba(125, 231, 255, 0.02)' }
+                                ])
+                            },
+                            markPoint: {
+                                symbolSize: 54,
+                                data: [{ type: 'max', name: '峰值' }],
+                                label: { color: '#04131d', fontWeight: 700 }
+                            }
+                        }]
+                    });
+                },
+                renderHospitalResponseChart() {
+                    const chart = this.ensureChart('hospitalResponse', 'hospital-response-chart');
+                    if (!chart) return;
+                    chart.setOption({
+                        tooltip: { trigger: 'axis' },
+                        grid: { left: 45, right: 20, top: 35, bottom: 30 },
+                        xAxis: {
+                            type: 'category',
+                            data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                            axisLabel: { color: '#86a6bc' },
+                            axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
+                        },
+                        yAxis: {
+                            type: 'value',
+                            axisLabel: { color: '#86a6bc', formatter: '{value} 分' },
+                            splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
+                        },
+                        series: [
+                            {
+                                name: '平均响应时长',
+                                type: 'line',
+                                smooth: true,
+                                data: this.selectedHospital.responseTrend,
+                                lineStyle: { color: '#36d8c6', width: 3 },
+                                itemStyle: { color: '#36d8c6' },
+                                symbolSize: 8,
+                                areaStyle: { color: 'rgba(62, 214, 198, 0.12)' }
+                            },
+                            {
+                                name: 'SLA 基线',
+                                type: 'line',
+                                data: [15, 15, 15, 15, 15, 15, 15],
+                                symbol: 'none',
+                                lineStyle: { color: '#ff6a6a', width: 2, type: 'dashed' }
+                            }
+                        ]
+                    });
+                },
+                renderHospitalTimeoutChart() {
+                    const chart = this.ensureChart('hospitalTimeout', 'hospital-timeout-chart');
+                    if (!chart) return;
+                    chart.setOption({
+                        tooltip: { trigger: 'axis' },
+                        grid: { left: 45, right: 20, top: 35, bottom: 30 },
+                        xAxis: {
+                            type: 'category',
+                            data: ['1 月', '2 月', '3 月'],
+                            axisLabel: { color: '#86a6bc' },
+                            axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
+                        },
+                        yAxis: {
+                            type: 'value',
+                            axisLabel: { color: '#86a6bc', formatter: '{value}%' },
+                            splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
+                        },
+                        series: [
+                            {
+                                name: '超时率',
+                                type: 'bar',
+                                barWidth: 26,
+                                data: this.selectedHospital.timeoutTrend,
+                                itemStyle: {
+                                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                        { offset: 0, color: '#ffca63' },
+                                        { offset: 1, color: '#ff8e54' }
+                                    ]),
+                                    borderRadius: [10, 10, 0, 0]
+                                }
+                            },
+                            {
+                                name: '改善趋势',
+                                type: 'line',
+                                smooth: true,
+                                data: this.selectedHospital.timeoutTrend,
+                                lineStyle: { color: '#7de7ff', width: 3 },
+                                itemStyle: { color: '#7de7ff' },
+                                symbolSize: 8
+                            }
+                        ]
+                    });
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
