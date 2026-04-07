@@ -42,25 +42,27 @@
             font-family: "Bahnschrift", "Segoe UI Variable Display", "Microsoft YaHei", sans-serif;
         }
 
-        body::before,
-        body::after {
+        .screen-shell::before,
+        .screen-shell::after {
             content: "";
-            position: fixed;
+            position: absolute;
             inset: 0;
             pointer-events: none;
             z-index: 0;
         }
 
-        body::before {
+        .screen-shell::before {
             background-image:
                 linear-gradient(rgba(0, 243, 255, 0.08) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(0, 243, 255, 0.08) 1px, transparent 1px);
-            background-size: 40px 40px;
+            background-size: 4vmin 4vmin;
+            /* Use viewport relative units for adaptive grid */
             mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 1), transparent 90%);
+            -webkit-mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 1), transparent 90%);
             animation: pulse-grid 8s linear infinite alternate;
         }
 
-        body::after {
+        .screen-shell::after {
             background: radial-gradient(circle at top, rgba(0, 136, 255, 0.15) 0%, transparent 40%);
         }
 
@@ -108,27 +110,6 @@
                 radial-gradient(circle at top left, rgba(58, 155, 182, 0.28), transparent 28%),
                 radial-gradient(circle at 85% 16%, rgba(31, 102, 146, 0.36), transparent 25%),
                 linear-gradient(180deg, #05111d 0%, #081825 48%, #07131d 100%);
-        }
-
-        .screen-shell::before,
-        .screen-shell::after {
-            display: none;
-        }
-
-        .screen-shell::before {
-            top: -2px;
-            left: -2px;
-            border-right: none;
-            border-bottom: none;
-            box-shadow: -4px -4px 12px rgba(0, 243, 255, 0.4);
-        }
-
-        .screen-shell::after {
-            bottom: -2px;
-            right: -2px;
-            border-left: none;
-            border-top: none;
-            box-shadow: 4px 4px 12px rgba(0, 243, 255, 0.4);
         }
 
         .topbar-scifi {
@@ -1767,7 +1748,7 @@
                                     distance: 90,
                                     alpha: 85,
                                     beta: 0,
-                                    center: [0, -5, 0], // 相机中心向下移动，地图下挂约50px
+                                    center: [-3, 35, 0], // 相机中心向下移动，地图下挂约50px
                                     autoRotate: false
                                 }
                             },
