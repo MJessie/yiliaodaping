@@ -88,19 +88,15 @@
             z-index: 1;
             min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            align-items: stretch;
+            justify-content: stretch;
             padding: 0;
             background: #000;
-            /* Letterboxing color */
         }
 
         .screen-shell {
-            height: auto;
+            height: 100vh;
             width: 100vw;
-            max-width: calc(100vh * 16 / 9);
-            max-height: calc(100vw * 9 / 16);
-            aspect-ratio: 16 / 9;
             padding: 20px;
             position: relative;
             overflow: hidden;
@@ -386,12 +382,13 @@
         .layout-3d {
             display: grid;
             flex: 1;
-            grid-template-columns: 400px 1fr 360px;
+            grid-template-columns: 440px 1fr 360px;
             grid-template-areas:
                 "left center right";
             gap: 20px;
             position: relative;
             padding-top: 0;
+            min-height: 0;
         }
 
         .left-col,
@@ -414,6 +411,8 @@
             flex-direction: column;
             gap: 20px;
             z-index: 10;
+            overflow: hidden;
+            min-height: 0;
         }
 
         .center-col {
@@ -422,11 +421,13 @@
             display: flex;
             flex-direction: column;
             z-index: 5;
+            overflow: hidden;
+            min-height: 0;
         }
 
         .hud-stats {
             position: absolute;
-            bottom: 40px;
+            bottom: 0px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
@@ -542,13 +543,14 @@
             gap: 20px;
             overflow: hidden;
             z-index: 10;
+            min-height: 0;
         }
 
         .summary-col {
             display: grid;
             gap: 16px;
             grid-template-columns: 1fr 1fr;
-            width: 400px;
+            width: 440px;
         }
 
         .summary-col.right {
@@ -559,6 +561,8 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
         }
 
         .flex-1 {
@@ -596,6 +600,9 @@
         .panel {
             padding: 18px;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
         }
 
         .panel-header {
@@ -632,7 +639,8 @@
         .chart {
             width: 100%;
             height: 100%;
-            min-height: 200px;
+            flex: 1;
+            min-height: 0;
         }
 
         .map-panel {
@@ -723,6 +731,7 @@
             flex-direction: column;
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             gap: 12px;
             margin-top: 10px;
             padding-right: 4px;
