@@ -7,6 +7,8 @@
     <title>运维大屏高保真原型</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         :root {
             --bg: #06131f;
@@ -127,63 +129,90 @@
             box-shadow: 4px 4px 12px rgba(0, 243, 255, 0.4);
         }
 
-        .topbar {
+        .topbar-scifi {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: space-between;
-            gap: 16px;
             margin-bottom: 24px;
-            padding: 16px 20px;
-            border: 1px solid rgba(0, 243, 255, 0.2);
-            border-radius: var(--radius);
-            background: linear-gradient(90deg, rgba(0, 136, 255, 0.15), rgba(0, 243, 255, 0.05), transparent);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
             position: relative;
+            z-index: 10;
         }
 
-        .title-wrap {
+        .topbar-left, .topbar-right {
             display: flex;
             align-items: center;
-            gap: 18px;
+            gap: 16px;
+            margin-top: 10px;
+            flex: 1;
+        }
+
+        .topbar-right {
+            justify-content: flex-end;
+        }
+
+        .topbar-center {
+            flex: 0 0 700px;
+            position: relative;
+            text-align: center;
+            padding: 12px 20px 24px;
+        }
+
+        .center-bg {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0, 243, 255, 0.15) 0%, transparent 100%);
+            border-top: 2px solid var(--accent);
+            clip-path: polygon(0 0, 100% 0, 90% 100%, 10% 100%);
+            box-shadow: inset 0 20px 30px rgba(0, 243, 255, 0.1);
+            z-index: -1;
+        }
+
+        .center-bg::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 10%;
+            width: 80%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            box-shadow: 0 0 15px var(--accent);
+        }
+
+        .topbar-center h1 {
+            margin: 0;
+            font-size: 36px;
+            letter-spacing: 4px;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(0, 243, 255, 0.8), 0 0 40px rgba(0, 136, 255, 0.5);
+            font-style: italic;
+        }
+
+        .topbar-center p {
+            margin: 8px 0 0;
+            font-size: 13px;
+            color: var(--accent);
+            letter-spacing: 3px;
+            font-family: 'Bahnschrift', sans-serif;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px var(--accent);
         }
 
         .title-mark {
-            width: 56px;
-            height: 56px;
-            border-radius: 18px;
-            background: linear-gradient(135deg, rgba(64, 222, 202, 0.28), rgba(125, 231, 255, 0.08));
-            border: 1px solid rgba(125, 231, 255, 0.26);
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.2), transparent);
+            border: 1px solid var(--accent);
             display: grid;
             place-items: center;
-            font-size: 22px;
+            font-size: 18px;
             font-weight: 700;
-            color: var(--accent-2);
-            box-shadow: inset 0 0 24px rgba(83, 219, 232, 0.15);
-        }
-
-        .title-copy h1 {
-            margin: 0;
-            font-size: 32px;
-            letter-spacing: 3px;
-            font-weight: 700;
-            text-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
             color: #fff;
-        }
-
-        .title-copy p {
-            margin: 6px 0 0;
-            color: var(--accent);
-            font-size: 14px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .toolbar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            justify-content: flex-end;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3), inset 0 0 15px rgba(0, 243, 255, 0.3);
+            text-shadow: 0 0 10px #fff;
+            transform: skewX(-5deg);
         }
 
         .chip-group,
@@ -360,6 +389,65 @@
             grid-template-columns: 1.52fr 1fr;
             gap: 18px;
             min-height: 520px;
+        }
+
+        .layout-3d {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            grid-template-areas: 
+                "left center right"
+                "bottom bottom bottom";
+            gap: 20px;
+            min-height: calc(100vh - 140px);
+        }
+
+        .left-col { grid-area: left; display: flex; flex-direction: column; gap: 20px; }
+        .center-col { grid-area: center; position: relative; display: flex; flex-direction: column; }
+        .right-col { grid-area: right; display: flex; flex-direction: column; gap: 20px; }
+        .bottom-col { grid-area: bottom; display: flex; gap: 20px; }
+
+        .summary-col {
+            display: grid;
+            gap: 20px;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .list-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .flex-1 { flex: 1; }
+
+        .highlight-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 10;
+            background: linear-gradient(135deg, rgba(2, 8, 14, 0.8), rgba(4, 15, 26, 0.9));
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: var(--radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 243, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 16px;
+        }
+
+        .three-container {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: radial-gradient(circle at center, rgba(0, 50, 100, 0.1) 0%, transparent 70%);
+            box-shadow: inset 0 0 50px rgba(0, 243, 255, 0.05);
+            border: 1px solid rgba(0, 243, 255, 0.1);
+        }
+
+        #three-map-chart {
+            width: 100%;
+            height: 100%;
         }
 
         .panel {
@@ -691,6 +779,7 @@
 
         @media (max-width: 1400px) {
 
+            .layout-3d,
             .summary-grid,
             .hospital-layout,
             .compare-grid,
@@ -699,6 +788,14 @@
             .content-grid,
             .selected-hospital {
                 grid-template-columns: 1fr;
+                grid-template-areas: none;
+            }
+
+            .layout-3d .left-col,
+            .layout-3d .center-col,
+            .layout-3d .right-col,
+            .layout-3d .bottom-col {
+                grid-area: auto;
             }
 
             .leader-row {
@@ -741,6 +838,10 @@
                 font-size: 30px;
             }
 
+            .summary-col {
+                grid-template-columns: 1fr;
+            }
+
             .leader-row {
                 grid-template-columns: 44px 1fr;
             }
@@ -757,108 +858,71 @@
 <body>
     <div id="app">
         <div class="screen-shell">
-            <header class="topbar">
-                <div class="title-wrap">
+            <header class="topbar-scifi">
+                <div class="topbar-left">
                     <div class="title-mark">OPS</div>
-                    <div class="title-copy">
-                        <h1>{{ currentView === 'hq' ? '总部运维总览大屏' : selectedHospital.name + ' 运维成效展示大屏' }}</h1>
-                        <p>东软医疗运维指挥中心 (SYSTEM OPS CENTER) // {{ currentTime }}</p>
+                    <div class="meta">
+                        <span class="status-dot"></span>
+                        <span style="color: var(--accent);">实时监控中</span>
+                        <span style="color: rgba(0, 243, 255, 0.4);">|</span>
+                        <span>{{ currentView === 'hq' ? '全国 18 家接入核心医院' : selectedHospital.city + ' · ' + selectedHospital.level }}</span>
                     </div>
                 </div>
-                <div class="toolbar">
-                    <div class="segment-group">
-                        <button class="segment" :class="{ active: currentView === 'hq' }"
-                            @click="switchView('hq')">总部总览</button>
-                        <button class="segment" :class="{ active: currentView === 'hospital' }"
-                            @click="switchView('hospital')">医院成效</button>
-                    </div>
-                    <div class="chip-group">
-                        <button v-for="range in timeRanges" :key="range.value" class="chip"
-                            :class="{ active: selectedRange === range.value }" @click="selectedRange = range.value">{{
-                            range.label }}</button>
-                    </div>
-                    <div v-if="currentView === 'hq'" class="chip-group">
+
+                <div class="topbar-center">
+                    <div class="center-bg"></div>
+                    <h1>{{ currentView === 'hq' ? '总部运维指挥中心 (HQ OPS)' : selectedHospital.name + ' 成效展示大屏' }}</h1>
+                    <p>SYSTEM OPS CENTER // DATA SYNC: ACTIVE // {{ currentTime }}</p>
+                </div>
+
+                <div class="topbar-right">
+                    <div class="chip-group" v-if="currentView === 'hq'">
                         <button v-for="metric in sortMetrics" :key="metric.value" class="chip"
                             :class="{ active: sortMetric === metric.value }" @click="sortMetric = metric.value">{{
                             metric.label }}</button>
                     </div>
-                    <div class="meta">
-                        <span class="status-dot"></span>
-                        <span>实时刷新中</span>
-                        <span>|</span>
-                        <span>{{ currentView === 'hq' ? '全国 18 家接入医院' : selectedHospital.city + ' · ' +
-                            selectedHospital.level }}</span>
+                    <div class="segment-group">
+                        <button class="segment" :class="{ active: currentView === 'hq' }"
+                            @click="switchView('hq')">总部指挥</button>
+                        <button class="segment" :class="{ active: currentView === 'hospital' }"
+                            @click="switchView('hospital')">单院透视</button>
                     </div>
                 </div>
             </header>
 
-            <section v-if="currentView === 'hq'" class="view">
-                <div class="summary-grid">
-                    <article v-for="card in hqCards" :key="card.label" class="metric-card"
-                        :class="card.tone ? 'tone-' + card.tone : ''">
-                        <div class="label">{{ card.label }}</div>
-                        <div class="value">{{ card.value }}</div>
-                        <div class="subline">
-                            <span>{{ card.note }}</span>
-                            <span class="trend" :class="trendClass(card.trendDirection, card.trendGood)">
-                                <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span>
-                                <span>{{ card.trendText }}</span>
-                            </span>
-                        </div>
-                    </article>
-                </div>
+            <section v-if="currentView === 'hq'" class="view layout-3d">
+                <div class="left-col">
+                    <div class="summary-col">
+                        <article v-for="card in hqCards.slice(0, 2)" :key="card.label" class="metric-card"
+                            :class="card.tone ? 'tone-' + card.tone : ''">
+                            <div class="label">{{ card.label }}</div>
+                            <div class="value">{{ card.value }}</div>
+                            <div class="subline">
+                                <span>{{ card.note }}</span>
+                                <span class="trend" :class="trendClass(card.trendDirection, card.trendGood)">
+                                    <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span>
+                                    <span>{{ card.trendText }}</span>
+                                </span>
+                            </div>
+                        </article>
+                    </div>
 
-                <div class="content-grid">
-                    <section class="panel map-panel">
-                        <div class="panel-header">
-                            <div>
-                                <h3>全国医院分布与风险态势</h3>
-                            </div>
-                            <div class="panel-badge">地图状态分布</div>
-                        </div>
-                        <div id="hq-map-chart" class="chart"></div>
-                        <div class="selected-hospital">
-                            <div class="hospital-focus">
-                                <div class="tags">
-                                    <span class="pill">已接入 {{ selectedHospital.accessDays }} 天</span>
-                                    <span class="pill">{{ selectedHospital.region }}</span>
-                                    <span class="pill">{{ statusText(selectedHospital.status) }}</span>
-                                </div>
-                                <div class="name">{{ selectedHospital.name }}</div>
-                                <div class="desc">{{ selectedHospital.brief }}</div>
-                            </div>
-                            <div class="mini-grid">
-                                <div class="mini-stat">
-                                    <h4>活动告警</h4>
-                                    <div class="number">{{ selectedHospital.activeAlerts }}</div>
-                                    <div class="small-note">较昨日 {{ selectedHospital.alertDelta > 0 ? '+' : '' }}{{
-                                        selectedHospital.alertDelta }}，值班高峰集中于 09:00-11:00</div>
-                                </div>
-                                <div class="mini-stat">
-                                    <h4>MTTR</h4>
-                                    <div class="number">{{ selectedHospital.mttr }}</div>
-                                    <div class="small-note">恢复效率优于全国均值 {{ selectedHospital.mttrAdvantage }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="panel">
+                    <section class="panel list-panel">
                         <div class="panel-header">
                             <div>
                                 <h3>医院横向对比监控</h3>
                             </div>
                             <div class="panel-badge">当前排序：{{ activeSortLabel }}</div>
                         </div>
-                        <div class="rank-list">
+                        <div class="rank-list" style="max-height: 480px; overflow-y: auto;">
+                            <!-- Removed style limit and fixed height if necessary, rank list styling is already handled -->
                             <div v-for="(hospital, index) in sortedHospitals" :key="hospital.id" class="leader-row"
                                 :class="{ active: hospital.id === selectedHospital.id }"
                                 @click="openHospital(hospital.id)">
                                 <div class="rank-index">{{ String(index + 1).padStart(2, '0') }}</div>
                                 <div>
                                     <div class="leader-name">{{ hospital.name }}</div>
-                                    <div class="leader-meta">{{ hospital.city }} · {{ hospital.level }} · {{
-                                        hospital.owner }}</div>
+                                    <div class="leader-meta">{{ hospital.city }} · {{ hospital.level }}</div>
                                 </div>
                                 <div class="leader-kpi">
                                     <strong>{{ hospital.activeAlerts }}</strong>
@@ -868,21 +932,56 @@
                                     <strong>{{ hospital.unhandledAlerts }}</strong>
                                     <span>未处理</span>
                                 </div>
-                                <div class="leader-kpi hide-md">
-                                    <strong>{{ hospital.mtta }}</strong>
-                                    <span>MTTA</span>
-                                </div>
-                                <div class="leader-kpi hide-md">
-                                    <strong>{{ hospital.mttr }}</strong>
-                                    <span>MTTR</span>
-                                </div>
                                 <div class="risk-tag" :class="hospital.status">{{ statusText(hospital.status) }}</div>
                             </div>
                         </div>
                     </section>
                 </div>
 
-                <div class="hospital-layout">
+                <div class="center-col">
+                    <div id="three-map-chart" class="chart"></div>
+                    <div class="selected-hospital highlight-container">
+                        <div class="hospital-focus">
+                            <div class="tags">
+                                <span class="pill">已接入 {{ selectedHospital.accessDays }} 天</span>
+                                <span class="pill">{{ selectedHospital.region }}</span>
+                                <span class="pill">{{ statusText(selectedHospital.status) }}</span>
+                            </div>
+                            <div class="name">{{ selectedHospital.name }}</div>
+                            <div class="desc">{{ selectedHospital.brief }}</div>
+                        </div>
+                        <div class="mini-grid">
+                            <div class="mini-stat">
+                                <h4>活动告警</h4>
+                                <div class="number">{{ selectedHospital.activeAlerts }}</div>
+                                <div class="small-note">较昨日 {{ selectedHospital.alertDelta > 0 ? '+' : '' }}{{
+                                    selectedHospital.alertDelta }}，值班高峰集中于 09:00-11:00</div>
+                            </div>
+                            <div class="mini-stat">
+                                <h4>MTTR</h4>
+                                <div class="number">{{ selectedHospital.mttr }}</div>
+                                <div class="small-note">恢复效率优于全国均值 {{ selectedHospital.mttrAdvantage }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right-col">
+                    <div class="summary-col">
+                        <article v-for="card in hqCards.slice(2, 4)" :key="card.label" class="metric-card"
+                            :class="card.tone ? 'tone-' + card.tone : ''">
+                            <div class="label">{{ card.label }}</div>
+                            <div class="value">{{ card.value }}</div>
+                            <div class="subline">
+                                <span>{{ card.note }}</span>
+                                <span class="trend" :class="trendClass(card.trendDirection, card.trendGood)">
+                                    <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span>
+                                    <span>{{ card.trendText }}</span>
+                                </span>
+                            </div>
+                        </article>
+                    </div>
+
                     <section class="panel">
                         <div class="panel-header">
                             <div>
@@ -890,16 +989,19 @@
                             </div>
                             <div class="panel-badge">单位：分钟</div>
                         </div>
-                        <div id="hq-compare-chart" class="chart"></div>
+                        <div id="hq-compare-chart" class="chart" style="height: 380px;"></div>
                     </section>
-                    <section class="panel">
+                </div>
+
+                <div class="bottom-col">
+                    <section class="panel flex-1">
                         <div class="panel-header">
                             <div>
                                 <h3>告警闭环状态分布</h3>
                             </div>
                             <div class="panel-badge">全国汇总</div>
                         </div>
-                        <div id="hq-closure-chart" class="chart"></div>
+                        <div id="hq-closure-chart" class="chart" style="height: 250px;"></div>
                     </section>
                 </div>
             </section>
@@ -1375,7 +1477,9 @@
             beforeUnmount() {
                 window.clearInterval(this.timer);
                 window.removeEventListener('resize', this.handleResize);
-                Object.values(this.charts).forEach((chart) => chart.dispose());
+                Object.values(this.charts).forEach((chart) => {
+                    if (chart && chart.dispose) chart.dispose();
+                });
             },
             methods: {
                 updateTime() {
@@ -1399,7 +1503,11 @@
                     return [direction, good ? 'good' : 'bad'];
                 },
                 handleResize() {
-                    Object.values(this.charts).forEach((chart) => chart && chart.resize());
+                    Object.values(this.charts).forEach((chart) => {
+                        if (chart && chart.resize) {
+                            chart.resize();
+                        }
+                    });
                 },
                 ensureChart(key, elementId) {
                     const element = document.getElementById(elementId);
@@ -1411,7 +1519,7 @@
                 },
                 renderCharts() {
                     if (this.currentView === 'hq') {
-                        this.renderMapChart();
+                        this.renderThreeMap();
                         this.renderHqCompareChart();
                         this.renderClosureChart();
                     } else {
@@ -1420,140 +1528,118 @@
                         this.renderHospitalTimeoutChart();
                     }
                 },
-                async renderMapChart() {
-                    const chart = this.ensureChart('hqMap', 'hq-map-chart');
-                    if (!chart) return;
+                renderThreeMap() {
+                    const container = document.getElementById('three-map-chart');
+                    if (!container) return;
 
-                    const scatterData = this.hospitals.map((item) => ({
-                        name: item.name,
-                        value: [...item.coord, item.activeAlerts],
-                        hospitalId: item.id,
-                        status: item.status,
-                        city: item.city,
-                        unhandledAlerts: item.unhandledAlerts,
-                        mtta: item.mtta,
-                        mttr: item.mttr
-                    }));
-
-                    const colorMap = { normal: '#55e58a', warning: '#ffca63', critical: '#ff6a6a' };
-
-                    try {
-                        const response = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json');
-                        const chinaJson = await response.json();
-                        echarts.registerMap('china-hospital-board', chinaJson);
-                        chart.off('click');
-                        chart.setOption({
-                            backgroundColor: 'transparent',
-                            tooltip: {
-                                trigger: 'item',
-                                backgroundColor: 'rgba(7, 19, 32, 0.96)',
-                                borderColor: 'rgba(123,214,255,0.2)',
-                                textStyle: { color: '#e9f5ff' },
-                                formatter: (params) => {
-                                    if (!params.data) return params.name;
-                                    const data = params.data;
-                                    return [
-                                        '<strong>' + data.name + '</strong>',
-                                        data.city + ' · ' + this.statusText(data.status),
-                                        '活动告警：' + data.value[2],
-                                        '未处理：' + data.unhandledAlerts,
-                                        'MTTA：' + data.mtta,
-                                        'MTTR：' + data.mttr
-                                    ].join('<br>');
-                                }
-                            },
-                            geo: {
-                                map: 'china-hospital-board',
-                                roam: true,
-                                zoom: 1.08,
-                                scaleLimit: { min: 1, max: 4 },
-                                itemStyle: {
-                                    areaColor: '#12314d',
-                                    borderColor: '#5fbdd6',
-                                    borderWidth: 0.8,
-                                    shadowColor: 'rgba(0, 0, 0, 0.2)',
-                                    shadowBlur: 10
-                                },
-                                emphasis: {
-                                    itemStyle: {
-                                        areaColor: '#1d4b72'
-                                    }
-                                }
-                            },
-                            series: [
-                                {
-                                    type: 'effectScatter',
-                                    coordinateSystem: 'geo',
-                                    data: scatterData,
-                                    symbolSize: (value) => Math.max(12, Math.min(26, 8 + value[2] / 2)),
-                                    rippleEffect: { scale: 4, brushType: 'stroke' },
-                                    itemStyle: {
-                                        color: (params) => colorMap[params.data.status],
-                                        shadowBlur: 18,
-                                        shadowColor: 'rgba(125, 231, 255, 0.35)'
-                                    },
-                                    label: {
-                                        show: true,
-                                        formatter: '{b}',
-                                        position: 'right',
-                                        color: '#dff7ff',
-                                        fontSize: 11
-                                    }
-                                }
-                            ]
-                        });
-                        chart.on('click', (params) => {
-                            if (params.data && params.data.hospitalId) {
-                                this.openHospital(params.data.hospitalId);
-                            }
-                        });
-                    } catch (error) {
-                        chart.setOption({
-                            xAxis: {
-                                type: 'value',
-                                min: 70,
-                                max: 135,
-                                splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } },
-                                axisLabel: { color: '#86a6bc' }
-                            },
-                            yAxis: {
-                                type: 'value',
-                                min: 15,
-                                max: 55,
-                                splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } },
-                                axisLabel: { color: '#86a6bc' }
-                            },
-                            tooltip: {
-                                trigger: 'item',
-                                backgroundColor: 'rgba(7, 19, 32, 0.96)',
-                                borderColor: 'rgba(123,214,255,0.2)',
-                                textStyle: { color: '#e9f5ff' }
-                            },
-                            graphic: [{
-                                type: 'text',
-                                left: 'center',
-                                top: 10,
-                                style: {
-                                    text: '地图数据加载失败，当前显示医院分布示意图',
-                                    fill: '#86a6bc',
-                                    fontSize: 12
-                                }
-                            }],
-                            series: [{
-                                type: 'scatter',
-                                data: scatterData.map((item) => ({ name: item.name, value: [item.value[0], item.value[1], item.value[2]], hospitalId: item.hospitalId, status: item.status })),
-                                symbolSize: (value) => Math.max(12, Math.min(26, 8 + value[2] / 2)),
-                                itemStyle: { color: (params) => colorMap[params.data.status] },
-                                label: { show: true, formatter: '{b}', position: 'right', color: '#dff7ff', fontSize: 11 }
-                            }]
-                        });
-                        chart.off('click');
-                        chart.on('click', (params) => {
-                            if (params.data && params.data.hospitalId) {
-                                this.openHospital(params.data.hospitalId);
-                            }
-                        });
+                    if (this.charts.threeObj) {
+                        return; // already init
                     }
+
+                    const width = container.clientWidth;
+                    const height = container.clientHeight || 500;
+
+                    const scene = new THREE.Scene();
+                    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+                    camera.position.set(0, 150, 400);
+
+                    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                    renderer.setSize(width, height);
+                    renderer.setPixelRatio(window.devicePixelRatio);
+                    container.appendChild(renderer.domElement);
+
+                    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+                    controls.enableDamping = true;
+                    controls.dampingFactor = 0.05;
+                    controls.maxPolarAngle = Math.PI / 2 - 0.1;
+
+                    const earthGroup = new THREE.Group();
+                    
+                    const earthGeometry = new THREE.SphereGeometry(100, 64, 64);
+                    const earthMaterial = new THREE.MeshPhongMaterial({
+                        color: 0x002244,
+                        emissive: 0x001122,
+                        transparent: true,
+                        opacity: 0.8,
+                        wireframe: true,
+                        wireframeLinewidth: 1,
+                        color: 0x00f3ff,
+                    });
+                    const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+                    earthGroup.add(earth);
+
+                    const innerMaterial = new THREE.MeshPhongMaterial({ color: 0x001122 });
+                    const innerEarth = new THREE.Mesh(new THREE.SphereGeometry(98, 64, 64), innerMaterial);
+                    earthGroup.add(innerEarth);
+
+                    scene.add(earthGroup);
+
+                    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                    scene.add(ambientLight);
+                    const dirLight = new THREE.DirectionalLight(0x00f3ff, 1);
+                    dirLight.position.set(200, 100, 50);
+                    scene.add(dirLight);
+
+                    const markerGeometry = new THREE.CylinderGeometry(0.5, 0.5, 4, 16);
+                    markerGeometry.translate(0, 2, 0);
+                    markerGeometry.rotateX(Math.PI / 2);
+
+                    const markerMaterialParams = {
+                        normal: { color: 0x00ff88, emissive: 0x00ff88, emissiveIntensity: 0.8 },
+                        warning: { color: 0xffb800, emissive: 0xffb800, emissiveIntensity: 1 },
+                        critical: { color: 0xff2a2a, emissive: 0xff2a2a, emissiveIntensity: 1.2 }
+                    };
+
+                    this.hospitals.forEach(h => {
+                        const coord = h.coord || [116.4, 39.9]; // default Beijing if no coord
+                        const lat = coord[1];
+                        const lon = coord[0];
+                        
+                        const phi = (90 - lat) * (Math.PI / 180);
+                        const theta = (lon + 180) * (Math.PI / 180);
+
+                        const x = -(100 * Math.sin(phi) * Math.cos(theta));
+                        const z = (100 * Math.sin(phi) * Math.sin(theta));
+                        const y = (100 * Math.cos(phi));
+
+                        const mMatParams = markerMaterialParams[h.status] || markerMaterialParams.normal;
+                        const mat = new THREE.MeshPhongMaterial(mMatParams);
+
+                        const mesh = new THREE.Mesh(markerGeometry, mat);
+                        mesh.position.set(x, y, z);
+                        mesh.lookAt(new THREE.Vector3(0, 0, 0));
+                        earthGroup.add(mesh);
+                    });
+
+                    // Keep China in front
+                    earthGroup.rotation.y = -Math.PI / 2;
+                    earthGroup.rotation.x = Math.PI / 6;
+
+                    let animationId;
+                    const animate = () => {
+                        animationId = requestAnimationFrame(animate);
+                        earthGroup.rotation.y += 0.001; // auto-rotate
+                        controls.update();
+                        renderer.render(scene, camera);
+                    };
+                    animate();
+
+                    this.charts.threeObj = {
+                        renderer,
+                        dispose: () => {
+                            cancelAnimationFrame(animationId);
+                            renderer.dispose();
+                            container.innerHTML = '';
+                            delete this.charts.threeObj;
+                        },
+                        resize: () => {
+                            const w = container.clientWidth;
+                            const h = container.clientHeight || 500;
+                            renderer.setSize(w, h);
+                            camera.aspect = w / h;
+                            camera.updateProjectionMatrix();
+                        }
+                    };
                 },
                 renderHqCompareChart() {
                     const chart = this.ensureChart('hqCompare', 'hq-compare-chart');
