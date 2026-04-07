@@ -589,10 +589,10 @@
 
         .three-container {
             position: absolute;
-            inset: 180px -380px 0 -420px;
+            inset: 20px -380px 0 -420px;
             /* Expand out of center col */
             z-index: -1;
-            overflow: hidden;
+            overflow: visible; /* 改为可见，防止被切切掉 */
         }
 
         #china-map-chart {
@@ -1723,7 +1723,7 @@
                                     distance: 90,
                                     alpha: 85,
                                     beta: 0,
-                                    center: [0, -2, 0],
+                                    center: [0, -10, 0], /* 通过改变3D相机的 Y 轴视角中心，来实现地图在画布内的下移 */
                                     autoRotate: false
                                 }
                             },
