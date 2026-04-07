@@ -1054,8 +1054,8 @@
             <header class="topbar-scifi">
                 <div class="topbar-center">
                     <div class="center-bg"></div>
-                    <h1>{{ currentView === 'hq' ? '总部运维指挥中心 (HQ OPS)' : selectedHospital.name + ' 成效展示大屏' }}</h1>
-                    <p>SYSTEM OPS CENTER // DATA SYNC: ACTIVE // {{ currentTime }}</p>
+                    <h1>{{ currentView === 'hq' ? '总部运维指挥中心' : selectedHospital.name + ' 成效展示大屏' }}</h1>
+                    <p>{{ currentTime }}</p>
                 </div>
             </header>
 
@@ -1646,7 +1646,8 @@
                 updateTime() {
                     const now = new Date();
                     const pad = (value) => String(value).padStart(2, '0');
-                    this.currentTime = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+                    const weeks = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+                    this.currentTime = now.getFullYear() + '年' + pad(now.getMonth() + 1) + '月' + pad(now.getDate()) + '日 ' + weeks[now.getDay()] + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
                 },
                 switchView(view) {
                     this.currentView = view;
