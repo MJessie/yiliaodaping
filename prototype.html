@@ -135,16 +135,17 @@
             margin-bottom: 24px;
             padding: 8px 16px;
             position: relative;
-            z-index: 10;
+            z-index: 30;
+            height: 90px;
         }
 
-        .topbar-left,
-        .topbar-right {
+        .topbar-left, .topbar-right {
             display: flex;
             align-items: center;
             gap: 16px;
             margin-top: 10px;
             flex: 1;
+            z-index: 10;
         }
 
         .topbar-right {
@@ -152,10 +153,15 @@
         }
 
         .topbar-center {
-            flex: 0 0 700px;
-            position: relative;
+            position: absolute;
+            left: 50%;
+            top: 0;
+            transform: translateX(-50%);
+            width: 700px;
             text-align: center;
             padding: 12px 20px 24px;
+            z-index: 5;
+            pointer-events: none;
         }
 
         .center-bg {
@@ -393,11 +399,21 @@
 
         .layout-3d {
             display: grid;
-            grid-template-columns: 1fr 2fr 1fr;
+            grid-template-columns: 400px 1fr 360px;
             grid-template-areas:
                 "left center right";
             gap: 20px;
             min-height: calc(100vh - 140px);
+            position: relative;
+            padding-top: 140px;
+        }
+
+        .left-col, .right-col, .center-col, .hud-stats {
+            pointer-events: none;
+        }
+        
+        .left-col > *, .right-col > *, .center-col > *, .hud-stats > * {
+            pointer-events: auto;
         }
 
         .left-col {
@@ -405,6 +421,7 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
+            z-index: 10;
         }
 
         .center-col {
@@ -412,6 +429,17 @@
             position: relative;
             display: flex;
             flex-direction: column;
+            z-index: 5;
+        }
+
+        .hud-stats {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            z-index: 20;
         }
 
         .right-col {
@@ -420,12 +448,18 @@
             flex-direction: column;
             gap: 20px;
             overflow: hidden;
+            z-index: 10;
         }
 
         .summary-col {
             display: grid;
             gap: 16px;
             grid-template-columns: 1fr 1fr;
+            width: 400px;
+        }
+        
+        .summary-col.right {
+            width: 360px;
         }
 
         .list-panel {
@@ -440,9 +474,9 @@
 
         .highlight-container {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
+            bottom: 0px;
+            left: 0px;
+            right: 0px;
             z-index: 10;
             background: linear-gradient(135deg, rgba(2, 8, 14, 0.8), rgba(4, 15, 26, 0.9));
             border: 1px solid rgba(0, 243, 255, 0.3);
@@ -454,14 +488,9 @@
 
         .three-container {
             position: absolute;
-            inset: 0;
-            z-index: 1;
-            border-radius: var(--radius);
+            inset: -140px -400px 0 -400px; /* Expand out of center col */
+            z-index: -1;
             overflow: hidden;
-            background: linear-gradient(180deg, rgba(4, 18, 32, 0.8) 0%, rgba(2, 10, 18, 0.95) 100%);
-            box-shadow: inset 0 0 50px rgba(0, 243, 255, 0.05);
-            border: 1px solid rgba(0, 243, 255, 0.1);
-            backdrop-filter: blur(8px);
         }
 
         #china-map-chart {
@@ -877,40 +906,15 @@
     <div id="app">
         <div class="screen-shell">
             <header class="topbar-scifi">
-                <div class="topbar-left">
-                    <div class="title-mark">OPS</div>
-                    <div class="meta">
-                        <span class="status-dot"></span>
-                        <span style="color: var(--accent);">实时监控中</span>
-                        <span style="color: rgba(0, 243, 255, 0.4);">|</span>
-                        <span>{{ currentView === 'hq' ? '全国 18 家接入核心医院' : selectedHospital.city + ' · ' +
-                            selectedHospital.level }}</span>
-                    </div>
-                </div>
-
                 <div class="topbar-center">
                     <div class="center-bg"></div>
                     <h1>{{ currentView === 'hq' ? '总部运维指挥中心 (HQ OPS)' : selectedHospital.name + ' 成效展示大屏' }}</h1>
                     <p>SYSTEM OPS CENTER // DATA SYNC: ACTIVE // {{ currentTime }}</p>
                 </div>
-
-                <div class="topbar-right">
-                    <div class="chip-group" v-if="currentView === 'hq'">
-                        <button v-for="metric in sortMetrics" :key="metric.value" class="chip"
-                            :class="{ active: sortMetric === metric.value }" @click="sortMetric = metric.value">{{
-                            metric.label }}</button>
-                    </div>
-                    <div class="segment-group">
-                        <button class="segment" :class="{ active: currentView === 'hq' }"
-                            @click="switchView('hq')">总部指挥</button>
-                        <button class="segment" :class="{ active: currentView === 'hospital' }"
-                            @click="switchView('hospital')">单院透视</button>
-                    </div>
-                </div>
             </header>
 
             <section v-if="currentView === 'hq'" class="view layout-3d">
-                <div class="left-col">
+                <div class="hud-stats">
                     <div class="summary-col">
                         <article v-for="card in hqCards.slice(0, 2)" :key="card.label" class="metric-card"
                             :class="card.tone ? 'tone-' + card.tone : ''">
@@ -926,6 +930,23 @@
                         </article>
                     </div>
 
+                    <div class="summary-col right">
+                        <article v-for="card in hqCards.slice(2, 4)" :key="card.label" class="metric-card"
+                            :class="card.tone ? 'tone-' + card.tone : ''">
+                            <div class="label">{{ card.label }}</div>
+                            <div class="value">{{ card.value }}</div>
+                            <div class="subline">
+                                <span>{{ card.note }}</span>
+                                <span class="trend" :class="trendClass(card.trendDirection, card.trendGood)">
+                                    <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span>
+                                    <span>{{ card.trendText }}</span>
+                                </span>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+
+                <div class="left-col">
                     <section class="panel list-panel">
                         <div class="panel-header">
                             <div>
@@ -961,48 +982,9 @@
                     <div class="three-container">
                         <div id="china-map-chart" class="chart"></div>
                     </div>
-                    <div class="selected-hospital highlight-container">
-                        <div class="hospital-focus">
-                            <div class="tags">
-                                <span class="pill">已接入 {{ selectedHospital.accessDays }} 天</span>
-                                <span class="pill">{{ selectedHospital.region }}</span>
-                                <span class="pill">{{ statusText(selectedHospital.status) }}</span>
-                            </div>
-                            <div class="name">{{ selectedHospital.name }}</div>
-                            <div class="desc">{{ selectedHospital.brief }}</div>
-                        </div>
-                        <div class="mini-grid">
-                            <div class="mini-stat">
-                                <h4>活动告警</h4>
-                                <div class="number">{{ selectedHospital.activeAlerts }}</div>
-                                <div class="small-note">较昨日 {{ selectedHospital.alertDelta > 0 ? '+' : '' }}{{
-                                    selectedHospital.alertDelta }}，值班高峰集中于 09:00-11:00</div>
-                            </div>
-                            <div class="mini-stat">
-                                <h4>MTTR</h4>
-                                <div class="number">{{ selectedHospital.mttr }}</div>
-                                <div class="small-note">恢复效率优于全国均值 {{ selectedHospital.mttrAdvantage }}</div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="right-col">
-                    <div class="summary-col">
-                        <article v-for="card in hqCards.slice(2, 4)" :key="card.label" class="metric-card"
-                            :class="card.tone ? 'tone-' + card.tone : ''">
-                            <div class="label">{{ card.label }}</div>
-                            <div class="value">{{ card.value }}</div>
-                            <div class="subline">
-                                <span>{{ card.note }}</span>
-                                <span class="trend" :class="trendClass(card.trendDirection, card.trendGood)">
-                                    <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span>
-                                    <span>{{ card.trendText }}</span>
-                                </span>
-                            </div>
-                        </article>
-                    </div>
-
                     <section class="panel flex-1">
                         <div class="panel-header">
                             <div>
