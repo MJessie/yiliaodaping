@@ -1051,23 +1051,6 @@
             </header>
 
             <section v-if="currentView === 'hq'" class="view layout-3d">
-                <div class="hud-stats">
-                    <article v-for="card in hqCards" :key="card.label" class="metric-card"
-                        :class="card.tone ? 'tone-' + card.tone : ''">
-                        <div class="label">{{ card.label }}</div>
-                        <div class="value">{{ card.value }}</div>
-                        <div class="bottom-row">
-                            <div class="subline">{{ card.note }}</div>
-                            <div class="trend-badge-container">
-                                <div class="trend-badge" :class="{ 'bad': !card.trendGood }">
-                                    <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span><br />
-                                    <span>{{ card.trendText }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </article>
-                </div>
-
                 <div class="left-col">
                     <section class="panel list-panel">
                         <div class="panel-header">
@@ -1109,6 +1092,24 @@
                 <div class="center-col">
                     <div class="three-container">
                         <div id="china-map-chart" class="chart"></div>
+                    </div>
+
+                    <!-- HUD Stats overlaid bottom center -->
+                    <div class="hud-stats">
+                        <article v-for="card in hqCards" :key="card.label" class="metric-card"
+                            :class="card.tone ? 'tone-' + card.tone : ''">
+                            <div class="label">{{ card.label }}</div>
+                            <div class="value">{{ card.value }}</div>
+                            <div class="bottom-row">
+                                <div class="subline">{{ card.note }}</div>
+                                <div class="trend-badge-container">
+                                    <div class="trend-badge" :class="{ 'bad': !card.trendGood }">
+                                        <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span><br />
+                                        <span>{{ card.trendText }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
                     </div>
                 </div>
 
