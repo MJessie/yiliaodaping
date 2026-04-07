@@ -35,11 +35,9 @@
         body {
             margin: 0;
             height: 100vh;
+            width: 100vw;
             overflow: hidden;
-            background:
-                radial-gradient(circle at top left, rgba(58, 155, 182, 0.28), transparent 28%),
-                radial-gradient(circle at 85% 16%, rgba(31, 102, 146, 0.36), transparent 25%),
-                linear-gradient(180deg, #05111d 0%, #081825 48%, #07131d 100%);
+            background: #000;
             color: var(--text);
             font-family: "Bahnschrift", "Segoe UI Variable Display", "Microsoft YaHei", sans-serif;
         }
@@ -87,16 +85,29 @@
             position: relative;
             z-index: 1;
             min-height: 100vh;
-            padding: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            background: #000;
+            /* Letterboxing color */
         }
 
         .screen-shell {
-            height: 100vh;
+            height: auto;
+            width: 100vw;
+            max-width: calc(100vh * 16 / 9);
+            max-height: calc(100vw * 9 / 16);
+            aspect-ratio: 16 / 9;
             padding: 20px;
             position: relative;
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            background:
+                radial-gradient(circle at top left, rgba(58, 155, 182, 0.28), transparent 28%),
+                radial-gradient(circle at 85% 16%, rgba(31, 102, 146, 0.36), transparent 25%),
+                linear-gradient(180deg, #05111d 0%, #081825 48%, #07131d 100%);
         }
 
         .screen-shell::before,
@@ -434,7 +445,7 @@
 
         .hud-stats {
             position: absolute;
-            top: 20px;
+            bottom: 40px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
@@ -1724,7 +1735,7 @@
                                     distance: 90,
                                     alpha: 85,
                                     beta: 0,
-                                    center: [0, 20, 10], /* 通过改变3D相机的 Y 轴视角中心，来实现地图在画布内的下移 */
+                                    center: [0, 0, 0],
                                     autoRotate: false
                                 }
                             },
