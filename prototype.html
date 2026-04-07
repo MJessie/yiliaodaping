@@ -1561,10 +1561,10 @@
                     if (!chart) return;
 
                     const colorMap = { normal: '#00ff88', warning: '#ffb800', critical: '#ff2a2a' };
-                    
+
                     const scatterData = this.hospitals.map((item) => ({
                         name: item.name,
-                        value: [...item.coord, item.activeAlerts * 2.5], 
+                        value: [...item.coord, item.activeAlerts * 2.5],
                         hospitalId: item.id,
                         status: item.status,
                         city: item.city,
@@ -1640,8 +1640,7 @@
                                     alpha: 40,
                                     beta: -5,
                                     center: [0, -5, 0],
-                                    autoRotate: true,
-                                    autoRotateSpeed: 4
+                                    autoRotate: false
                                 }
                             },
                             series: [
@@ -1683,11 +1682,6 @@
                             }
                         });
 
-                    } catch (error) {
-                        console.error('Failed to load 3D Map:', error);
-                    }
-                },
-                renderHqCompareChart() {
                     } catch (error) {
                         console.error('Failed to load 3D Map:', error);
                     }
