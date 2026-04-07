@@ -16,14 +16,14 @@
             --line: rgba(94, 163, 193, 0.26);
             --line-strong: rgba(112, 210, 228, 0.5);
             --text: #e9f5ff;
-            --muted: #86a6bc;
-            --accent: #3ed6c6;
-            --accent-2: #7de7ff;
-            --warn: #ffca63;
-            --danger: #ff6a6a;
-            --success: #55e58a;
-            --shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
-            --radius: 24px;
+            --muted: #5e8baf;
+            --accent: #00f3ff;
+            --accent-2: #0088ff;
+            --warn: #ffb800;
+            --danger: #ff2a2a;
+            --success: #00ff88;
+            --shadow: 0 0 30px rgba(0, 243, 255, 0.15);
+            --radius: 12px;
         }
 
         * {
@@ -54,14 +54,32 @@
 
         body::before {
             background-image:
-                linear-gradient(rgba(125, 231, 255, 0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(125, 231, 255, 0.04) 1px, transparent 1px);
-            background-size: 36px 36px;
-            mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.95), transparent 92%);
+                linear-gradient(rgba(0, 243, 255, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.08) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 1), transparent 90%);
+            animation: pulse-grid 8s linear infinite alternate;
         }
 
         body::after {
-            background: linear-gradient(180deg, rgba(5, 17, 29, 0) 0%, rgba(5, 17, 29, 0.38) 100%);
+            background: radial-gradient(circle at top, rgba(0, 136, 255, 0.15) 0%, transparent 40%);
+        }
+
+        @keyframes pulse-grid {
+            0% {
+                opacity: 0.6;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.02);
+            }
+
+            100% {
+                opacity: 0.6;
+                transform: scale(1);
+            }
         }
 
         #app {
@@ -73,12 +91,40 @@
 
         .screen-shell {
             min-height: calc(100vh - 56px);
-            border: 1px solid rgba(126, 217, 255, 0.18);
-            border-radius: 30px;
-            background: linear-gradient(180deg, rgba(7, 18, 31, 0.9), rgba(5, 13, 22, 0.96));
-            box-shadow: var(--shadow);
+            border: 1px solid rgba(0, 243, 255, 0.4);
+            border-radius: 12px;
+            background: linear-gradient(180deg, rgba(4, 15, 26, 0.95), rgba(2, 8, 14, 0.95));
+            box-shadow: 0 0 50px rgba(0, 136, 255, 0.2), inset 0 0 30px rgba(0, 243, 255, 0.1);
             padding: 22px;
-            backdrop-filter: blur(18px);
+            backdrop-filter: blur(20px);
+            position: relative;
+        }
+
+        .screen-shell::before,
+        .screen-shell::after {
+            content: '';
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            pointer-events: none;
+        }
+
+        .screen-shell::before {
+            top: -2px;
+            left: -2px;
+            border-right: none;
+            border-bottom: none;
+            box-shadow: -4px -4px 12px rgba(0, 243, 255, 0.4);
+        }
+
+        .screen-shell::after {
+            bottom: -2px;
+            right: -2px;
+            border-left: none;
+            border-top: none;
+            box-shadow: 4px 4px 12px rgba(0, 243, 255, 0.4);
         }
 
         .topbar {
@@ -86,11 +132,13 @@
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            margin-bottom: 20px;
-            padding: 14px 18px;
-            border: 1px solid rgba(123, 214, 255, 0.12);
-            border-radius: 22px;
-            background: linear-gradient(90deg, rgba(13, 32, 50, 0.86), rgba(8, 20, 35, 0.76));
+            margin-bottom: 24px;
+            padding: 16px 20px;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: var(--radius);
+            background: linear-gradient(90deg, rgba(0, 136, 255, 0.15), rgba(0, 243, 255, 0.05), transparent);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            position: relative;
         }
 
         .title-wrap {
@@ -115,16 +163,19 @@
 
         .title-copy h1 {
             margin: 0;
-            font-size: 30px;
-            letter-spacing: 2px;
+            font-size: 32px;
+            letter-spacing: 3px;
             font-weight: 700;
+            text-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+            color: #fff;
         }
 
         .title-copy p {
             margin: 6px 0 0;
-            color: var(--muted);
-            font-size: 13px;
-            letter-spacing: 1px;
+            color: var(--accent);
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
 
         .toolbar {
@@ -140,9 +191,10 @@
             display: inline-flex;
             align-items: center;
             padding: 4px;
-            border-radius: 999px;
-            border: 1px solid rgba(123, 214, 255, 0.14);
-            background: rgba(8, 20, 35, 0.72);
+            border-radius: 6px;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            background: rgba(2, 10, 18, 0.8);
+            box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.1);
         }
 
         .chip,
@@ -150,18 +202,20 @@
             border: none;
             color: var(--muted);
             background: transparent;
-            padding: 10px 16px;
-            border-radius: 999px;
+            padding: 8px 18px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 13px;
-            transition: 0.2s ease;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .chip.active,
         .segment.active {
-            color: #04131d;
-            background: linear-gradient(135deg, var(--accent), var(--accent-2));
-            box-shadow: 0 10px 20px rgba(62, 214, 198, 0.2);
+            color: #fff;
+            background: linear-gradient(90deg, rgba(0, 136, 255, 0.8), rgba(0, 243, 255, 0.6));
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
             font-weight: 700;
         }
 
@@ -169,12 +223,13 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 10px 14px;
-            border-radius: 18px;
-            background: rgba(13, 34, 55, 0.8);
-            border: 1px solid rgba(123, 214, 255, 0.1);
-            color: var(--muted);
-            font-size: 13px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            background: rgba(2, 10, 18, 0.8);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            color: var(--accent-2);
+            font-size: 14px;
+            box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.1);
         }
 
         .status-dot {
@@ -182,7 +237,15 @@
             height: 8px;
             border-radius: 999px;
             background: var(--success);
-            box-shadow: 0 0 0 6px rgba(85, 229, 138, 0.12);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.8), 0 0 0 6px rgba(0, 255, 136, 0.15);
+            animation: blink 2s infinite ease-in-out;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0.5;
+                box-shadow: 0 0 5px rgba(0, 255, 136, 0.4), 0 0 0 3px rgba(0, 255, 136, 0.1);
+            }
         }
 
         .view {
@@ -202,27 +265,35 @@
         .story-card,
         .leader-row,
         .signal-card {
-            border: 1px solid rgba(123, 214, 255, 0.14);
-            background: linear-gradient(180deg, rgba(12, 30, 48, 0.88), rgba(8, 19, 32, 0.82));
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            background: linear-gradient(135deg, rgba(4, 18, 32, 0.8) 0%, rgba(2, 10, 18, 0.95) 100%);
             border-radius: var(--radius);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            box-shadow: inset 0 0 20px rgba(0, 136, 255, 0.1);
+            position: relative;
+            backdrop-filter: blur(8px);
+        }
+
+        .panel::before,
+        .metric-card::before,
+        .story-card::before,
+        .signal-card::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            width: 20px;
+            height: 20px;
+            border-top: 2px solid var(--accent);
+            border-left: 2px solid var(--accent);
+            border-radius: var(--radius) 0 0 0;
+            opacity: 0.8;
+            pointer-events: none;
         }
 
         .metric-card {
-            position: relative;
             overflow: hidden;
             padding: 18px 18px 20px;
             min-height: 146px;
-        }
-
-        .metric-card::before {
-            content: "";
-            position: absolute;
-            inset: auto -28px -36px auto;
-            width: 120px;
-            height: 120px;
-            border-radius: 999px;
-            background: radial-gradient(circle, rgba(125, 231, 255, 0.16), transparent 68%);
         }
 
         .metric-card .label {
@@ -317,12 +388,14 @@
         }
 
         .panel-badge {
-            padding: 8px 12px;
+            padding: 6px 12px;
             font-size: 12px;
-            color: var(--accent-2);
-            border-radius: 999px;
-            border: 1px solid rgba(123, 214, 255, 0.16);
-            background: rgba(7, 19, 32, 0.8);
+            color: var(--accent);
+            border-radius: 4px;
+            border: 1px solid rgba(0, 243, 255, 0.4);
+            background: rgba(0, 243, 255, 0.1);
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.8);
+            letter-spacing: 1px;
         }
 
         .chart {
@@ -422,74 +495,91 @@
 
         .leader-row {
             display: grid;
-            grid-template-columns: 68px 1.4fr repeat(4, 0.8fr) 100px;
+            grid-template-columns: 60px 1.4fr repeat(4, 0.8fr) 100px;
             gap: 10px;
             align-items: center;
-            padding: 14px 16px;
+            padding: 12px 16px;
             cursor: pointer;
-            transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.1);
+            background: linear-gradient(90deg, rgba(0, 136, 255, 0.05), transparent);
+            transition: all 0.3s ease;
         }
 
         .leader-row:hover,
         .leader-row.active {
-            transform: translateY(-2px);
-            border-color: rgba(123, 214, 255, 0.28);
-            background: linear-gradient(180deg, rgba(16, 39, 61, 0.96), rgba(9, 22, 36, 0.9));
+            transform: translateX(6px);
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(90deg, rgba(0, 243, 255, 0.2), rgba(0, 136, 255, 0.05));
+            box-shadow: inset 0 0 20px rgba(0, 243, 255, 0.2);
         }
 
         .rank-index {
-            width: 38px;
-            height: 38px;
-            border-radius: 14px;
+            width: 36px;
+            height: 36px;
+            border-radius: 4px;
             display: grid;
             place-items: center;
-            background: rgba(125, 231, 255, 0.08);
-            color: var(--accent-2);
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid rgba(0, 243, 255, 0.4);
+            color: var(--accent);
             font-weight: 700;
+            text-shadow: 0 0 10px var(--accent);
         }
 
         .leader-name {
             font-size: 15px;
             font-weight: 700;
+            color: #fff;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
         }
 
         .leader-kpi strong,
         .highlight-value,
         .compare-value {
             display: block;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 700;
-            color: var(--text);
-            margin-bottom: 4px;
+            color: var(--accent);
+            margin-bottom: 2px;
+            font-family: 'Bahnschrift', sans-serif;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
         }
 
         .leader-kpi span,
         .compare-label {
             color: var(--muted);
             font-size: 12px;
+            text-transform: uppercase;
         }
 
         .risk-tag {
             justify-self: end;
-            padding: 6px 10px;
-            border-radius: 999px;
+            padding: 6px 12px;
+            border-radius: 4px;
             font-size: 12px;
             font-weight: 700;
+            letter-spacing: 1px;
         }
 
         .risk-tag.normal {
             color: var(--success);
-            background: rgba(85, 229, 138, 0.12);
+            border: 1px solid var(--success);
+            box-shadow: inset 0 0 10px rgba(0, 255, 136, 0.2);
+            background: rgba(0, 255, 136, 0.05);
         }
 
         .risk-tag.warning {
             color: var(--warn);
-            background: rgba(255, 202, 99, 0.12);
+            border: 1px solid var(--warn);
+            box-shadow: inset 0 0 10px rgba(255, 184, 0, 0.2);
+            background: rgba(255, 184, 0, 0.05);
         }
 
         .risk-tag.critical {
             color: var(--danger);
-            background: rgba(255, 106, 106, 0.14);
+            border: 1px solid var(--danger);
+            box-shadow: inset 0 0 10px rgba(255, 42, 42, 0.2);
+            background: rgba(255, 42, 42, 0.05);
         }
 
         .hospital-layout {
@@ -569,18 +659,22 @@
         }
 
         .ghost-button {
-            border: 1px solid rgba(123, 214, 255, 0.16);
-            background: rgba(9, 22, 36, 0.8);
-            color: var(--text);
-            border-radius: 999px;
-            padding: 10px 16px;
+            border: 1px solid rgba(0, 243, 255, 0.4);
+            background: rgba(2, 10, 18, 0.8);
+            color: var(--accent);
+            border-radius: 4px;
+            padding: 8px 20px;
             cursor: pointer;
-            transition: 0.2s ease;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
         }
 
         .ghost-button:hover {
-            border-color: rgba(123, 214, 255, 0.3);
-            transform: translateY(-1px);
+            background: rgba(0, 243, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+            color: #fff;
         }
 
         @keyframes rise {
@@ -668,7 +762,7 @@
                     <div class="title-mark">OPS</div>
                     <div class="title-copy">
                         <h1>{{ currentView === 'hq' ? '总部运维总览大屏' : selectedHospital.name + ' 运维成效展示大屏' }}</h1>
-                        <p>东软医疗运维运营中心 · 数据更新时间 {{ currentTime }} · 演示原型基于 Vue + ECharts</p>
+                        <p>东软医疗运维指挥中心 (SYSTEM OPS CENTER) // {{ currentTime }}</p>
                     </div>
                 </div>
                 <div class="toolbar">
@@ -719,9 +813,8 @@
                         <div class="panel-header">
                             <div>
                                 <h3>全国医院分布与风险态势</h3>
-                                <p>点击地图医院点位进入单院运维成效大屏，地图与排行联动高亮</p>
                             </div>
-                            <div class="panel-badge">地图状态颜色：绿 / 黄 / 红</div>
+                            <div class="panel-badge">地图状态分布</div>
                         </div>
                         <div id="hq-map-chart" class="chart"></div>
                         <div class="selected-hospital">
@@ -753,8 +846,7 @@
                     <section class="panel">
                         <div class="panel-header">
                             <div>
-                                <h3>医院横向对比</h3>
-                                <p>默认按未处理告警数降序，可切换排序维度</p>
+                                <h3>医院横向对比监控</h3>
                             </div>
                             <div class="panel-badge">当前排序：{{ activeSortLabel }}</div>
                         </div>
@@ -794,8 +886,7 @@
                     <section class="panel">
                         <div class="panel-header">
                             <div>
-                                <h3>核心效率分布</h3>
-                                <p>总部视角观察各院告警响应与恢复水平</p>
+                                <h3>核心效率分布矩阵</h3>
                             </div>
                             <div class="panel-badge">单位：分钟</div>
                         </div>
@@ -804,8 +895,7 @@
                     <section class="panel">
                         <div class="panel-header">
                             <div>
-                                <h3>告警闭环结构</h3>
-                                <p>活动、未处理、已闭环工单分布</p>
+                                <h3>告警闭环状态分布</h3>
                             </div>
                             <div class="panel-badge">全国汇总</div>
                         </div>
@@ -839,8 +929,7 @@
                     <section class="panel">
                         <div class="panel-header">
                             <div>
-                                <h3>近 7 天告警趋势</h3>
-                                <p>每日告警量折线图，观察事件高发日期</p>
+                                <h3>近 7 天告警趋势分析</h3>
                             </div>
                             <div class="panel-badge">{{ selectedHospital.city }}</div>
                         </div>
@@ -850,8 +939,7 @@
                     <section class="panel">
                         <div class="panel-header">
                             <div>
-                                <h3>近 7 天响应时长趋势</h3>
-                                <p>从告警生成到进入处理中的平均时长</p>
+                                <h3>近 7 天 MTTA 响应趋势</h3>
                             </div>
                             <div class="panel-badge">目标 SLA 15 分钟</div>
                         </div>
@@ -875,8 +963,7 @@
                     <section class="panel">
                         <div class="panel-header">
                             <div>
-                                <h3>超时率 3 个月下降趋势</h3>
-                                <p>用于汇报持续改进成果，突出环比下降</p>
+                                <h3>超时率 3 个月变化趋势</h3>
                             </div>
                             <div class="panel-badge">按月统计</div>
                         </div>
@@ -886,10 +973,9 @@
                     <section class="panel">
                         <div class="panel-header">
                             <div>
-                                <h3>成效亮点</h3>
-                                <p>适合在院内周会、月会或领导汇报中直接展示</p>
+                                <h3>运维运营成效亮点</h3>
                             </div>
-                            <div class="panel-badge">价值输出</div>
+                            <div class="panel-badge">管理价值输出</div>
                         </div>
                         <div class="insight-grid">
                             <article class="story-card">
@@ -909,7 +995,7 @@
                             <article class="story-card">
                                 <div class="story-meta"><span>闭环效率</span></div>
                                 <div class="highlight-value">{{ selectedHospital.closureRate }}</div>
-                                <p>工单闭环率持续高于集团基线，响应链路完整，适合作为院方汇报中的核心成绩指标。</p>
+                                <p>工单闭环率持续高于集团基线，告警响应链路完整处理迅速，有效支持了临床科室的工作效率。</p>
                                 <div class="highlight-foot">本月较上月 {{ selectedHospital.closureDelta }}</div>
                             </article>
                         </div>
@@ -921,12 +1007,12 @@
                         <h4>系统稳定性说明</h4>
                         <div class="mini-tags"><span>核心系统可用率</span><span>{{ selectedHospital.availability }}</span>
                         </div>
-                        <p>近 30 天关键业务系统整体稳定，放疗、影像及门诊接口可用率维持在高位，满足 PRD 中对绿色阈值的要求。</p>
+                        <p>近 30 天关键业务系统整体稳定，放疗、影像及门诊接口可用率维持在高位，未发生影响核心医疗业务的系统级故障。</p>
                     </article>
                     <article class="signal-card">
                         <h4>值班与响应说明</h4>
                         <div class="mini-tags"><span>平均响应</span><span>{{ selectedHospital.responseAvg }}</span></div>
-                        <p>晚间重点依赖值班群组首响与自动升级策略，当前平均响应时长较上周期继续优化，可直接作为服务能力证明。</p>
+                        <p>晚间核心系统依赖值班群组告警监控和自动升级策略，当前平均响应时长及恢复时间均优于集团 SLA 考核基线。</p>
                     </article>
                     <article class="signal-card">
                         <h4>管理建议</h4>
@@ -1106,7 +1192,7 @@
                             mttrValue: 39,
                             alertDelta: 1,
                             mttrAdvantage: '21%',
-                            brief: '住院与检验链路运行稳定，接口抖动偶发，需要继续压低超时率以提升展示成效。',
+                            brief: '住院与检验链路运行稳定，接口抖动偶发，需要继续压低超时率以保障诊疗业务连续性。',
                             availability: '99.92%',
                             closureRate: '95.6%',
                             responseAvg: '10 分钟',
