@@ -139,7 +139,8 @@
             height: 90px;
         }
 
-        .topbar-left, .topbar-right {
+        .topbar-left,
+        .topbar-right {
             display: flex;
             align-items: center;
             gap: 16px;
@@ -408,11 +409,17 @@
             padding-top: 140px;
         }
 
-        .left-col, .right-col, .center-col, .hud-stats {
+        .left-col,
+        .right-col,
+        .center-col,
+        .hud-stats {
             pointer-events: none;
         }
-        
-        .left-col > *, .right-col > *, .center-col > *, .hud-stats > * {
+
+        .left-col>*,
+        .right-col>*,
+        .center-col>*,
+        .hud-stats>* {
             pointer-events: auto;
         }
 
@@ -434,12 +441,96 @@
 
         .hud-stats {
             position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 20;
+        }
+
+        .hud-stats .metric-card {
+            background: rgba(5, 15, 25, 0.85); /* 较深的背景色 */
+            border: 1px solid var(--border-color); /* 边框 */
+            border-radius: 8px; /* 圆角 */
+            padding: 15px 20px;
+            width: 200px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hud-stats .metric-card::before {
+            content: '';
+            position: absolute;
             top: 0;
             left: 0;
-            right: 0;
+            width: 15px;
+            height: 15px;
+            border-top: 2px solid var(--primary-color);
+            border-left: 2px solid var(--primary-color);
+            border-top-left-radius: 8px;
+        }
+
+        .hud-stats .metric-card .label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7); /* 偏淡的文字颜色 */
+            margin-bottom: 5px;
+        }
+
+        .hud-stats .metric-card .value {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary-color); /* 数字的亮蓝色 */
+            margin-bottom: 10px;
+            line-height: 1;
+        }
+        
+        .hud-stats .metric-card.tone-warning .value {
+            color: var(--warning-color); /* 警告颜色的数字 */
+        }
+
+        .hud-stats .metric-card .bottom-row {
             display: flex;
             justify-content: space-between;
-            z-index: 20;
+            align-items: flex-end;
+            margin-top: auto;
+            gap: 10px;
+        }
+
+        .hud-stats .metric-card .subline {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5); /* 更淡的辅助文字颜色 */
+            line-height: 1.3;
+            flex: 1; /* 占据剩余空间 */
+            word-break: break-all;
+        }
+
+        .hud-stats .metric-card .trend-badge-container {
+            flex-shrink: 0; /* 防止被挤压 */
+        }
+
+        .hud-stats .metric-card .trend-badge {
+            background: rgba(0, 255, 128, 0.1); /* 绿色背景 */
+            color: #00ff80; /* 绿色文字 */
+            padding: 4px 8px;
+            border-radius: 12px; /* 更圆的胶囊形状 */
+            font-size: 11px;
+            display: inline-flex; /* 内部居中对齐 */
+            align-items: center;
+            gap: 2px;
+            white-space: pre-wrap; /* 允许换行 */
+            text-align: center;
+            min-width: 60px; /* 保证一定的宽度，让多行文字看起来更平衡 */
+            justify-content: center;
+        }
+
+        .hud-stats .metric-card .trend-badge.bad {
+             background: rgba(255, 64, 64, 0.1); /* 红色背景 */
+             color: #ff4040; /* 红色文字 */
         }
 
         .right-col {
@@ -457,7 +548,7 @@
             grid-template-columns: 1fr 1fr;
             width: 400px;
         }
-        
+
         .summary-col.right {
             width: 360px;
         }
@@ -488,7 +579,8 @@
 
         .three-container {
             position: absolute;
-            inset: -140px -400px 0 -400px; /* Expand out of center col */
+            inset: -140px -400px 0 -400px;
+            /* Expand out of center col */
             z-index: -1;
             overflow: hidden;
         }
@@ -915,35 +1007,20 @@
 
             <section v-if="currentView === 'hq'" class="view layout-3d">
                 <div class="hud-stats">
-                    <div class="summary-col">
-                        <article v-for="card in hqCards.slice(0, 2)" :key="card.label" class="metric-card"
-                            :class="card.tone ? 'tone-' + card.tone : ''">
-                            <div class="label">{{ card.label }}</div>
-                            <div class="value">{{ card.value }}</div>
-                            <div class="subline">
-                                <span>{{ card.note }}</span>
-                                <span class="trend" :class="trendClass(card.trendDirection, card.trendGood)">
-                                    <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span>
+                    <article v-for="card in hqCards" :key="card.label" class="metric-card"
+                        :class="card.tone ? 'tone-' + card.tone : ''">
+                        <div class="label">{{ card.label }}</div>
+                        <div class="value">{{ card.value }}</div>
+                        <div class="bottom-row">
+                            <div class="subline">{{ card.note }}</div>
+                            <div class="trend-badge-container">
+                                <div class="trend-badge" :class="{ 'bad': !card.trendGood }">
+                                    <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span><br/>
                                     <span>{{ card.trendText }}</span>
-                                </span>
+                                </div>
                             </div>
-                        </article>
-                    </div>
-
-                    <div class="summary-col right">
-                        <article v-for="card in hqCards.slice(2, 4)" :key="card.label" class="metric-card"
-                            :class="card.tone ? 'tone-' + card.tone : ''">
-                            <div class="label">{{ card.label }}</div>
-                            <div class="value">{{ card.value }}</div>
-                            <div class="subline">
-                                <span>{{ card.note }}</span>
-                                <span class="trend" :class="trendClass(card.trendDirection, card.trendGood)">
-                                    <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span>
-                                    <span>{{ card.trendText }}</span>
-                                </span>
-                            </div>
-                        </article>
-                    </div>
+                        </div>
+                    </article>
                 </div>
 
                 <div class="left-col">
