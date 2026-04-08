@@ -1,0 +1,258 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HQ Operations Dashboard</title>
+    <script src="js/libs/vue.global.prod.js"></script>
+    <script src="js/libs/echarts.min.js"></script>
+    <script src="js/libs/echarts-gl.min.js"></script>
+    <link rel="stylesheet" href="css/index.css">
+</head>
+
+<body>
+    <div id="app">
+        <div class="screen-shell">
+            <header class="topbar-scifi">
+                <div class="topbar-center">
+                    <div class="center-bg"></div>
+                    <h1>{{ currentView === 'hq' ? '总部运维指挥中心' : selectedHospital.name + ' 成效展示大屏' }}</h1>
+                    <p>{{ currentTime }}</p>
+                </div>
+            </header>
+
+            <section v-if="currentView === 'hq'" class="view layout-3d">
+                <div class="left-col">
+                    <section class="panel list-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>医院横向对比监控</h3>
+                            </div>
+                            <div class="panel-badge">当前排序：{{ activeSortLabel }}</div>
+                        </div>
+                        <div class="rank-list">
+                            <div v-for="(hospital, index) in sortedHospitals" :key="hospital.id" class="leader-row"
+                                :class="{ active: hospital.id === selectedHospital.id }"
+                                @click="openHospital(hospital.id)">
+                                <div class="rank-index">{{ String(index + 1).padStart(2, '0') }}</div>
+                                <div class="leader-info">
+                                    <div class="leader-top">
+                                        <div class="leader-name" :title="hospital.name">{{ hospital.name }}</div>
+                                        <div class="risk-tag" :class="hospital.status">{{ statusText(hospital.status) }}
+                                        </div>
+                                    </div>
+                                    <div class="leader-bottom">
+                                        <div class="leader-meta">{{ hospital.city }} · {{ hospital.level }}</div>
+                                        <div class="leader-metrics">
+                                            <div class="leader-kpi">
+                                                <strong>{{ hospital.activeAlerts }}</strong>
+                                                <span>活动告警</span>
+                                            </div>
+                                            <div class="leader-kpi">
+                                                <strong>{{ hospital.unhandledAlerts }}</strong>
+                                                <span>未处理</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="center-col">
+                    <div class="three-container">
+                        <div id="china-map-chart" class="chart"></div>
+                    </div>
+
+                    <!-- HUD Stats overlaid bottom center -->
+                    <div class="hud-stats">
+                        <article v-for="card in hqCards" :key="card.label" class="metric-card"
+                            :class="card.tone ? 'tone-' + card.tone : ''">
+                            <div class="label">{{ card.label }}</div>
+                            <div class="value">{{ card.value }}</div>
+                            <div class="bottom-row">
+                                <div class="subline">{{ card.note }}</div>
+                                <div class="trend-badge-container">
+                                    <div class="trend-badge" :class="{ 'bad': !card.trendGood }">
+                                        <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span><br />
+                                        <span>{{ card.trendText }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+
+                <div class="right-col">
+                    <section class="panel">
+                        <div class="panel-header" style="margin-bottom: 10px;">
+                            <div>
+                                <h3>运维资源调配状态</h3>
+                            </div>
+                        </div>
+                        <div class="mini-grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+                            <div class="mini-stat">
+                                <div class="small-note">一线现场运维</div>
+                                <div class="number" style="color: #00ff88;">324 <span
+                                        style="font-size: 14px; font-weight: normal; color: var(--muted);">人</span>
+                                </div>
+                            </div>
+                            <div class="mini-stat">
+                                <div class="small-note">二线技术专家</div>
+                                <div class="number" style="color: #00f3ff;">56 <span
+                                        style="font-size: 14px; font-weight: normal; color: var(--muted);">人</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="panel flex-1">
+                        <div class="panel-header">
+                            <div>
+                                <h3>核心效率分布矩阵</h3>
+                            </div>
+                            <div class="panel-badge">单位：分钟</div>
+                        </div>
+                        <div id="hq-compare-chart" class="chart"></div>
+                    </section>
+
+                    <section class="panel flex-1">
+                        <div class="panel-header">
+                            <div>
+                                <h3>告警闭环状态分布</h3>
+                            </div>
+                            <div class="panel-badge">全国汇总</div>
+                        </div>
+                        <div id="hq-closure-chart" class="chart"></div>
+                    </section>
+                </div>
+            </section>
+
+            <section v-else class="view">
+                <div class="page-subtitle">
+                    <h2>{{ selectedHospital.name }} · 单院运维成效视图</h2>
+                    <button class="ghost-button" @click="switchView('hq')">返回总部总览</button>
+                </div>
+
+                <div class="summary-grid">
+                    <article v-for="card in hospitalCards" :key="card.label" class="metric-card"
+                        :class="card.tone ? 'tone-' + card.tone : ''">
+                        <div class="label">{{ card.label }}</div>
+                        <div class="value">{{ card.value }}</div>
+                        <div class="subline">
+                            <span>{{ card.note }}</span>
+                            <span class="trend" :class="trendClass(card.trendDirection, card.trendGood)">
+                                <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span>
+                                <span>{{ card.trendText }}</span>
+                            </span>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="hospital-layout">
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>近 7 天告警趋势分析</h3>
+                            </div>
+                            <div class="panel-badge">{{ selectedHospital.city }}</div>
+                        </div>
+                        <div id="hospital-alert-chart" class="chart"></div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>近 7 天 MTTA 响应趋势</h3>
+                            </div>
+                            <div class="panel-badge">目标 SLA 15 分钟</div>
+                        </div>
+                        <div id="hospital-response-chart" class="chart"></div>
+                    </section>
+                </div>
+
+                <div class="compare-grid">
+                    <article v-for="item in compareCards" :key="item.label" class="compare-card">
+                        <div class="compare-label">{{ item.label }}</div>
+                        <div class="compare-value">{{ item.value }}</div>
+                        <div class="small-note">{{ item.period }}</div>
+                        <div class="delta" :class="item.good ? 'good' : 'bad'">
+                            <span>{{ item.direction === 'up' ? '↑' : '↓' }}</span>
+                            <span>{{ item.delta }}</span>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="hospital-layout">
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>超时率 3 个月变化趋势</h3>
+                            </div>
+                            <div class="panel-badge">按月统计</div>
+                        </div>
+                        <div id="hospital-timeout-chart" class="chart"></div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>运维运营成效亮点</h3>
+                            </div>
+                            <div class="panel-badge">管理价值输出</div>
+                        </div>
+                        <div class="insight-grid">
+                            <article class="story-card">
+                                <div class="story-meta"><span>重大故障避免</span></div>
+                                <div class="highlight-value">{{ selectedHospital.preventedMajor }}</div>
+                                <p>通过提前告警、主动处置和夜间巡检，本周期共阻断 {{ selectedHospital.preventedMajor }} 次潜在重大故障升级。</p>
+                                <div class="highlight-foot">主动运维贡献度高于上周期 {{ selectedHospital.preventedMajorDelta }}
+                                </div>
+                            </article>
+                            <article class="story-card">
+                                <div class="story-meta"><span>夜间值班保障</span></div>
+                                <div class="highlight-value">{{ selectedHospital.nightRate }}</div>
+                                <p>夜班时段 22:00-06:00 告警响应达标率保持高位，满足院领导对核心系统夜间稳定运行要求。</p>
+                                <div class="highlight-foot">夜班值班体系稳定，连续 {{ selectedHospital.nightStableDays }} 天无严重漏响
+                                </div>
+                            </article>
+                            <article class="story-card">
+                                <div class="story-meta"><span>闭环效率</span></div>
+                                <div class="highlight-value">{{ selectedHospital.closureRate }}</div>
+                                <p>工单闭环率持续高于集团基线，告警响应链路完整处理迅速，有效支持了临床科室的工作效率。</p>
+                                <div class="highlight-foot">本月较上月 {{ selectedHospital.closureDelta }}</div>
+                            </article>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="signal-grid">
+                    <article class="signal-card">
+                        <h4>系统稳定性说明</h4>
+                        <div class="mini-tags"><span>核心系统可用率</span><span>{{ selectedHospital.availability }}</span>
+                        </div>
+                        <p>近 30 天关键业务系统整体稳定，放疗、影像及门诊接口可用率维持在高位，未发生影响核心医疗业务的系统级故障。</p>
+                    </article>
+                    <article class="signal-card">
+                        <h4>值班与响应说明</h4>
+                        <div class="mini-tags"><span>平均响应</span><span>{{ selectedHospital.responseAvg }}</span></div>
+                        <p>晚间核心系统依赖值班群组告警监控和自动升级策略，当前平均响应时长及恢复时间均优于集团 SLA 考核基线。</p>
+                    </article>
+                    <article class="signal-card">
+                        <h4>管理建议</h4>
+                        <div class="mini-tags"><span>建议方向</span><span>{{ selectedHospital.suggestionTag }}</span></div>
+                        <p>{{ selectedHospital.suggestion }}</p>
+                    </article>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="js/data/mock-data.js"></script>
+    <script src="js/data/data-service.js"></script>
+    <script src="js/headscreen.js"></script>
+</body>
+
+</html>
