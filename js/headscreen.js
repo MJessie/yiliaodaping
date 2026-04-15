@@ -25,8 +25,13 @@ createApp({
         totalAlerts() {
             const active = this.hospitals.reduce((sum, item) => sum + item.activeAlerts, 0);
             const unhandled = this.hospitals.reduce((sum, item) => sum + item.unhandledAlerts, 0);
-            const closed = 426;
+            const multiplier = this.selectedRange === 'week' ? 6.5 : this.selectedRange === 'month' ? 25 : 1;
+            const closed = Math.round(426 * multiplier);
             return active + unhandled + closed;
+        },
+        selectedClosedAlerts() {
+            const multiplier = this.selectedRange === 'week' ? 6.5 : this.selectedRange === 'month' ? 25 : 1;
+            return Math.round(426 * multiplier);
         },
         selectedHospital() {
             return this.hospitals.find((item) => item.id === this.selectedHospitalId) || this.hospitals[0];
@@ -46,12 +51,17 @@ createApp({
             const mttaAvg = this.hospitals.length ? (this.hospitals.reduce((sum, item) => sum + item.mttaValue, 0) / this.hospitals.length).toFixed(1) : '0';
             const mttrAvg = this.hospitals.length ? (this.hospitals.reduce((sum, item) => sum + item.mttrValue, 0) / this.hospitals.length).toFixed(1) : '0';
 
+            const baseCoverage = this.selectedRange === 'today' ? 99.2 : this.selectedRange === 'week' ? 99.7 : 99.9;
+            const baseHit = this.selectedRange === 'today' ? 94.8 : this.selectedRange === 'week' ? 93.5 : 95.2;
+            const baseL1 = this.selectedRange === 'today' ? 87.5 : this.selectedRange === 'week' ? 85.9 : 88.0;
+            const baseReg = this.selectedRange === 'today' ? 99.8 : this.selectedRange === 'week' ? 99.5 : 99.9;
+
             // 总部运维视角管理成效核心指标
             return [
-                { label: '监控覆盖度', value: '99.2%', yoyDir: 'up', yoyGood: true, yoyText: '3.1%', momDir: 'up', momGood: true, momText: '0.5%', tone: 'good' },
-                { label: '故障命中率', value: '94.8%', yoyDir: 'up', yoyGood: true, yoyText: '5.2%', momDir: 'down', momGood: false, momText: '1.2%', tone: 'info' },
-                { label: '一线解决率', value: '87.5%', yoyDir: 'up', yoyGood: true, yoyText: '4.5%', momDir: 'up', momGood: true, momText: '2.1%', tone: 'good' },
-                { label: '操作合规率', value: '99.8%', yoyDir: 'up', yoyGood: true, yoyText: '1.2%', momDir: 'up', momGood: true, momText: '0.1%', tone: 'info' },
+                { label: '监控覆盖度', value: baseCoverage + '%', yoyDir: 'up', yoyGood: true, yoyText: '3.1%', momDir: 'up', momGood: true, momText: '0.5%', tone: 'good' },
+                { label: '故障命中率', value: baseHit + '%', yoyDir: 'up', yoyGood: true, yoyText: '5.2%', momDir: 'down', momGood: false, momText: '1.2%', tone: 'info' },
+                { label: '一线解决率', value: baseL1 + '%', yoyDir: 'up', yoyGood: true, yoyText: '4.5%', momDir: 'up', momGood: true, momText: '2.1%', tone: 'good' },
+                { label: '操作合规率', value: baseReg + '%', yoyDir: 'up', yoyGood: true, yoyText: '1.2%', momDir: 'up', momGood: true, momText: '0.1%', tone: 'info' },
                 { label: '平均响应时间', value: mttaAvg + ' m', yoyDir: 'down', yoyGood: true, yoyText: '1.2m', momDir: 'down', momGood: true, momText: '0.3m', tone: 'good' },
                 { label: '平均恢复时间', value: mttrAvg + ' m', yoyDir: 'down', yoyGood: true, yoyText: '5.5m', momDir: 'up', momGood: false, momText: '0.8m', tone: 'good' }
             ];
@@ -82,7 +92,31 @@ createApp({
         currentView() {
             this.$nextTick(() => this.renderCharts());
         },
-        selectedRange() {
+        async selectedRange() {
+            const rawData = window.MockData.hospitals;
+            let multiplier = 1;
+            let offset = 0;
+            if (this.selectedRange === 'week') {
+                multiplier = 6.5;
+                offset = 2;
+            } else if (this.selectedRange === 'month') {
+                multiplier = 25;
+                offset = 5;
+            }
+
+            // Randomize based on multiplier to simulate data shifts
+            this.hospitals = rawData.map(hospital => ({
+                ...hospital,
+                activeAlerts: Math.max(1, Math.round(hospital.activeAlerts * multiplier * (1 + (Math.random() * 0.4 - 0.2)))),
+                unhandledAlerts: Math.max(1, Math.round(hospital.unhandledAlerts * multiplier * (1 + (Math.random() * 0.4 - 0.2)))),
+                p0Alerts: Math.round(hospital.p0Alerts * multiplier),
+                p1Alerts: Math.round(hospital.p1Alerts * multiplier),
+                p2Alerts: Math.round(hospital.p2Alerts * multiplier),
+                p3Alerts: Math.round(hospital.p3Alerts * multiplier),
+                mttaValue: Math.max(1, Math.round(hospital.mttaValue + offset + (Math.random() * 4 - 2))),
+                mttrValue: Math.max(10, Math.round(hospital.mttrValue + offset * 2 + (Math.random() * 10 - 5)))
+            }));
+
             this.$nextTick(() => this.renderCharts());
         },
         selectedAlertLevels: {
@@ -640,7 +674,11 @@ createApp({
             if (!chart) return;
             const active = this.hospitals.reduce((sum, item) => sum + item.activeAlerts, 0);
             const unhandled = this.hospitals.reduce((sum, item) => sum + item.unhandledAlerts, 0);
-            const closed = 426;
+            const closed = this.selectedClosedAlerts;
+
+            const total = closed + active + unhandled;
+            const closureRate = total > 0 ? ((closed / total) * 100).toFixed(1) : 0;
+
             chart.setOption({
                 tooltip: { trigger: 'item' },
                 legend: { bottom: 0, textStyle: { color: '#c8e5f5' } },
@@ -662,7 +700,7 @@ createApp({
                     left: 'center',
                     top: '39%',
                     style: {
-                        text: '闭环率\n96.2%',
+                        text: '闭环率\n' + closureRate + '%',
                         textAlign: 'center',
                         fill: '#e9f5ff',
                         fontSize: 20,
