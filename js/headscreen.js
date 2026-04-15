@@ -13,10 +13,21 @@ createApp({
             selectedHospitalId: '',
             hospitals: [],
             metricModalVisible: false,
-            activeMetricTitle: ''
+            activeMetricTitle: '',
+            activeModalCard: null,
+            selectedAlertLevels: ['P0', 'P1', 'P2', 'P3'],
+            modalAlertLevels: ['P0', 'P1', 'P2', 'P3'],
+            modalProject: 'all',
+            modalObjType: 'all'
         };
     },
     computed: {
+        totalAlerts() {
+            const active = this.hospitals.reduce((sum, item) => sum + item.activeAlerts, 0);
+            const unhandled = this.hospitals.reduce((sum, item) => sum + item.unhandledAlerts, 0);
+            const closed = 426;
+            return active + unhandled + closed;
+        },
         selectedHospital() {
             return this.hospitals.find((item) => item.id === this.selectedHospitalId) || this.hospitals[0];
         },
@@ -74,6 +85,30 @@ createApp({
         selectedRange() {
             this.$nextTick(() => this.renderCharts());
         },
+        selectedAlertLevels: {
+            deep: true,
+            handler() {
+                this.$nextTick(() => this.renderLeftChart1());
+            }
+        },
+        modalAlertLevels: {
+            deep: true,
+            handler() {
+                if (this.metricModalVisible && this.activeModalCard) {
+                    this.$nextTick(() => this.renderMetricTrendChart(this.activeModalCard));
+                }
+            }
+        },
+        modalProject() {
+            if (this.metricModalVisible && this.activeModalCard) {
+                this.$nextTick(() => this.renderMetricTrendChart(this.activeModalCard));
+            }
+        },
+        modalObjType() {
+            if (this.metricModalVisible && this.activeModalCard) {
+                this.$nextTick(() => this.renderMetricTrendChart(this.activeModalCard));
+            }
+        },
         sortMetric() {
             this.$nextTick(() => this.renderCharts());
         },
@@ -112,9 +147,30 @@ createApp({
         });
     },
     methods: {
+        toggleAlertLevel(level) {
+            const idx = this.selectedAlertLevels.indexOf(level);
+            if (idx > -1) {
+                if (this.selectedAlertLevels.length > 1) {
+                    this.selectedAlertLevels.splice(idx, 1);
+                }
+            } else {
+                this.selectedAlertLevels.push(level);
+            }
+        },
+        toggleModalAlertLevel(level) {
+            const idx = this.modalAlertLevels.indexOf(level);
+            if (idx > -1) {
+                if (this.modalAlertLevels.length > 1) {
+                    this.modalAlertLevels.splice(idx, 1);
+                }
+            } else {
+                this.modalAlertLevels.push(level);
+            }
+        },
         openMetricModal(card) {
             this.metricModalVisible = true;
             this.activeMetricTitle = card.label;
+            this.activeModalCard = card;
             this.$nextTick(() => {
                 this.renderMetricTrendChart(card);
             });
@@ -130,6 +186,17 @@ createApp({
             const data = [];
             const now = new Date();
             let baseValue = parseFloat(card.value) || 90;
+
+            if (this.activeMetricTitle === '告警数量趋势图') {
+                const ratio = this.modalAlertLevels.length / 4;
+                baseValue = baseValue * ratio;
+                if (this.modalProject !== 'all') {
+                    baseValue = baseValue * 0.4;
+                }
+                if (this.modalObjType !== 'all') {
+                    baseValue = baseValue * 0.3;
+                }
+            }
 
             for (let i = 29; i >= 0; i--) {
                 const d = new Date(now.getTime() - i * 24 * 3600 * 1000);
@@ -236,24 +303,35 @@ createApp({
             if (!chart) return;
             const systems = ['RocketMQ', 'ElasticSearch', 'Logstash', 'Kibana', 'Doris', 'Redis', 'OpenGauss', 'Oracle', '海量DB', '达梦', '金仓', '数盈平台', 'HIOS技术', 'HIOS集成', 'HIOS基础', 'HIOS版本', 'HIOS护士', 'HIOS医生', 'HIOS专科', '临床LIS', '临床区域检验', '临床急诊', '临床手麻', '临床ICU', '设备连接', '影像PACS', '影像VNA', '区域医疗公卫'];
 
-            const data = systems.map(sys => {
+            const data = systems.reduce((acc, sys) => {
                 const val = Math.floor(Math.random() * 50) + 10; // 随机生成告警总数
                 let levelColor = '';
+                let level = '';
+
                 if (val >= 45) {
-                    levelColor = 'rgba(255, 42, 42, 0.75)'; // 最高量级 - 红色
+                    levelColor = 'rgba(255, 42, 42, 0.75)'; // P0 - 红色
+                    level = 'P0';
                 } else if (val >= 35) {
-                    levelColor = 'rgba(255, 184, 0, 0.65)'; // 高量级 - 橙色
+                    levelColor = 'rgba(255, 184, 0, 0.65)'; // P1 - 橙色
+                    level = 'P1';
                 } else if (val >= 20) {
-                    levelColor = 'rgba(0, 243, 255, 0.45)'; // 中量级 - 蓝色，降低透明度变淡
+                    levelColor = 'rgba(0, 243, 255, 0.45)'; // P2 - 蓝色，降低透明度变淡
+                    level = 'P2';
                 } else {
-                    levelColor = 'rgba(0, 255, 136, 0.3)'; // 低量级 - 绿色，大幅降低透明度变淡
+                    levelColor = 'rgba(0, 255, 136, 0.3)'; // P3 - 绿色，大幅降低透明度变淡
+                    level = 'P3';
                 }
-                return {
-                    name: sys,
-                    value: val,
-                    itemStyle: { color: levelColor }
-                };
-            });
+
+                // 筛选逻辑
+                if (this.selectedAlertLevels.includes(level)) {
+                    acc.push({
+                        name: sys,
+                        value: val,
+                        itemStyle: { color: levelColor }
+                    });
+                }
+                return acc;
+            }, []);
 
             const option = {
                 tooltip: {

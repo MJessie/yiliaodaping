@@ -57,9 +57,18 @@
                     </section>
 
                     <section class="panel flex-1">
-                        <div class="panel-header">
+                        <div class="panel-header"
+                            style="justify-content: space-between; display: flex; align-items: center;">
                             <div>
                                 <h3>告警闭环状态</h3>
+                            </div>
+                            <div style="font-size: 14px; color: #86a6bc; cursor: pointer; transition: text-shadow 0.2s;"
+                                onmouseover="this.style.textShadow='0 0 8px rgba(0, 243, 255, 0.6)'"
+                                onmouseout="this.style.textShadow='none'"
+                                @click="openMetricModal({ label: '告警数量趋势图', value: totalAlerts })">
+                                告警总数 <span
+                                    style="color: #00f3ff; font-weight: bold; font-size: 16px; margin-left: 4px;">{{
+                                    totalAlerts }}</span>
                             </div>
                         </div>
                         <div id="hq-closure-chart" class="chart"></div>
@@ -112,9 +121,22 @@
                         <div id="left-chart-2" class="chart"></div>
                     </section>
                     <section class="panel flex-1">
-                        <div class="panel-header">
+                        <div class="panel-header"
+                            style="justify-content: space-between; display: flex; align-items: center;">
                             <div>
-                                <h3>告警资源类型</h3>
+                                <h3>监控对象告警</h3>
+                            </div>
+                            <div style="display: flex; gap: 6px; margin-right: 15px;">
+                                <div v-for="lvl in ['P0', 'P1', 'P2', 'P3']" :key="lvl" @click="toggleAlertLevel(lvl)"
+                                    :style="{
+                                         cursor: 'pointer', padding: '2px 8px', fontSize: '12px', borderRadius: '4px',
+                                         backgroundColor: selectedAlertLevels.includes(lvl) ? 'rgba(0, 243, 255, 0.15)' : 'transparent',
+                                         border: '1px solid ' + (selectedAlertLevels.includes(lvl) ? '#00f3ff' : 'rgba(134, 166, 188, 0.3)'),
+                                         color: selectedAlertLevels.includes(lvl) ? '#00f3ff' : '#86a6bc',
+                                         userSelect: 'none', transition: 'all 0.2s'
+                                     }">
+                                    {{ lvl }}
+                                </div>
                             </div>
                         </div>
                         <div id="left-chart-1" class="chart"></div>
@@ -130,9 +152,44 @@
                     style="background: rgba(10, 24, 43, 0.95); border: 1px solid rgba(0, 243, 255, 0.3); border-radius: 12px; width: 760px; padding: 20px; box-shadow: 0 0 40px rgba(0,0,0,0.8);">
                     <div class="modal-header"
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; border-bottom: 1px solid rgba(0, 243, 255, 0.2); padding-bottom: 15px;">
-                        <h3
-                            style="margin: 0; color: #00f3ff; font-size: 18px; letter-spacing: 1px; font-weight: normal;">
-                            {{ activeMetricTitle }}</h3>
+                        <div style="display: flex; align-items: center; gap: 20px;">
+                            <h3
+                                style="margin: 0; color: #00f3ff; font-size: 18px; letter-spacing: 1px; font-weight: normal;">
+                                {{ activeMetricTitle }}</h3>
+                            <div v-show="activeMetricTitle === '告警数量趋势图'"
+                                style="display: flex; gap: 15px; align-items: center;">
+                                <select v-model="modalProject"
+                                    style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #86a6bc; padding: 3px 8px; border-radius: 4px; outline: none; font-size: 12px; cursor: pointer;">
+                                    <option value="all" style="background: #0a182b;">全部项目</option>
+                                    <option value="p1" style="background: #0a182b;">省立医院项目</option>
+                                    <option value="p2" style="background: #0a182b;">市中心医院项目</option>
+                                    <option value="p3" style="background: #0a182b;">妇幼保健院项目</option>
+                                </select>
+
+                                <select v-model="modalObjType"
+                                    style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #86a6bc; padding: 3px 8px; border-radius: 4px; outline: none; font-size: 12px; cursor: pointer;">
+                                    <option value="all" style="background: #0a182b;">全部监控类型</option>
+                                    <option value="host" style="background: #0a182b;">主机</option>
+                                    <option value="db" style="background: #0a182b;">数据库</option>
+                                    <option value="net" style="background: #0a182b;">网络设备</option>
+                                    <option value="app" style="background: #0a182b;">中间件</option>
+                                    <option value="storage" style="background: #0a182b;">存储</option>
+                                </select>
+
+                                <div style="display: flex; gap: 6px;">
+                                    <div v-for="lvl in ['P0', 'P1', 'P2', 'P3']" :key="'modal-'+lvl"
+                                        @click="toggleModalAlertLevel(lvl)" :style="{
+                                             cursor: 'pointer', padding: '2px 8px', fontSize: '12px', borderRadius: '4px',
+                                             backgroundColor: modalAlertLevels.includes(lvl) ? 'rgba(0, 243, 255, 0.15)' : 'transparent',
+                                             border: '1px solid ' + (modalAlertLevels.includes(lvl) ? '#00f3ff' : 'rgba(134, 166, 188, 0.3)'),
+                                             color: modalAlertLevels.includes(lvl) ? '#00f3ff' : '#86a6bc',
+                                             userSelect: 'none', transition: 'all 0.2s'
+                                         }">
+                                        {{ lvl }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <span @click="closeMetricModal"
                             style="color: #86a6bc; cursor: pointer; font-size: 26px; line-height: 20px; transition: color 0.3s;"
                             onmouseover="this.style.color='#00f3ff'"
