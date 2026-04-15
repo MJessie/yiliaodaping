@@ -15,49 +15,65 @@
     <div id="app">
         <div class="screen-shell">
             <header class="topbar-scifi">
-                <div class="topbar-center">
+                <div class="topbar-center" style="pointer-events: auto;">
                     <div class="center-bg"></div>
                     <h1>总部运维指挥中心</h1>
                     <p>{{ currentTime }}</p>
+
+                    <select v-model="selectedRange" class="time-select">
+                        <option value="today">今日</option>
+                        <option value="week">本周</option>
+                        <option value="month">本月</option>
+                    </select>
                 </div>
             </header>
 
             <section class="view layout-3d">
-                <div class="left-col">
-                    <section class="panel list-panel">
-                        <div class="panel-header">
+                <div class="left-col" style="display: flex; flex-direction: column; gap: 20px;">
+                    <section class="panel">
+                        <div class="panel-header" style="margin-bottom: 10px;">
                             <div>
-                                <h3>医院横向对比监控</h3>
+                                <h3>运维概况</h3>
                             </div>
-                            <div class="panel-badge">当前排序：{{ activeSortLabel }}</div>
                         </div>
-                        <div class="rank-list">
-                            <div v-for="(hospital, index) in sortedHospitals" :key="hospital.id" class="leader-row"
-                                :class="{ active: hospital.id === selectedHospital.id }"
-                                @click="openHospital(hospital.id)">
-                                <div class="rank-index">{{ String(index + 1).padStart(2, '0') }}</div>
-                                <div class="leader-info">
-                                    <div class="leader-top">
-                                        <div class="leader-name" :title="hospital.name">{{ hospital.name }}</div>
-                                        <div class="risk-tag" :class="hospital.status">{{ statusText(hospital.status) }}
-                                        </div>
-                                    </div>
-                                    <div class="leader-bottom">
-                                        <div class="leader-meta">{{ hospital.city }} · {{ hospital.level }}</div>
-                                        <div class="leader-metrics">
-                                            <div class="leader-kpi">
-                                                <strong>{{ hospital.activeAlerts }}</strong>
-                                                <span>活动告警</span>
-                                            </div>
-                                            <div class="leader-kpi">
-                                                <strong>{{ hospital.unhandledAlerts }}</strong>
-                                                <span>未处理</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                        <div class="mini-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+                            <div class="mini-stat">
+                                <div class="small-note">医院数量</div>
+                                <div class="number" style="color: #ffb800;">{{ hospitals.length }} <span
+                                        style="font-size: 14px; font-weight: normal; color: var(--muted);">家</span>
+                                </div>
+                            </div>
+                            <div class="mini-stat">
+                                <div class="small-note">一线现场运维</div>
+                                <div class="number" style="color: #00ff88;">8 <span
+                                        style="font-size: 14px; font-weight: normal; color: var(--muted);">人</span>
+                                </div>
+                            </div>
+                            <div class="mini-stat">
+                                <div class="small-note">二线技术专家</div>
+                                <div class="number" style="color: #00f3ff;">20 <span
+                                        style="font-size: 14px; font-weight: normal; color: var(--muted);">人</span>
                                 </div>
                             </div>
                         </div>
+                    </section>
+
+                    <section class="panel flex-1">
+                        <div class="panel-header">
+                            <div>
+                                <h3>告警闭环状态</h3>
+                            </div>
+                        </div>
+                        <div id="hq-closure-chart" class="chart"></div>
+                    </section>
+
+                    <section class="panel flex-1">
+                        <div class="panel-header">
+                            <div>
+                                <h3>告警处理效率</h3>
+                            </div>
+                        </div>
+                        <div id="hq-compare-chart" class="chart"></div>
                     </section>
                 </div>
 
@@ -73,11 +89,11 @@
                             <div class="label">{{ card.label }}</div>
                             <div class="value">{{ card.value }}</div>
                             <div class="bottom-row">
-                                <div class="subline">{{ card.note }}</div>
-                                <div class="trend-badge-container">
-                                    <div class="trend-badge" :class="{ 'bad': !card.trendGood }">
-                                        <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span><br />
-                                        <span>{{ card.trendText }}</span>
+                                <div class="trend-badge-container"
+                                    style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
+                                    <div class="trend-badge" :class="{ 'bad': !card.momGood }">
+                                        <span>环比</span><span style="font-weight: bold; margin-left: 4px;">{{ card.momDir
+                                            === 'up' ? '↑' : '↓' }} {{ card.momText }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -85,47 +101,22 @@
                     </div>
                 </div>
 
-                <div class="right-col">
-                    <section class="panel">
-                        <div class="panel-header" style="margin-bottom: 10px;">
-                            <div>
-                                <h3>运维资源调配状态</h3>
-                            </div>
-                        </div>
-                        <div class="mini-grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
-                            <div class="mini-stat">
-                                <div class="small-note">一线现场运维</div>
-                                <div class="number" style="color: #00ff88;">324 <span
-                                        style="font-size: 14px; font-weight: normal; color: var(--muted);">人</span>
-                                </div>
-                            </div>
-                            <div class="mini-stat">
-                                <div class="small-note">二线技术专家</div>
-                                <div class="number" style="color: #00f3ff;">56 <span
-                                        style="font-size: 14px; font-weight: normal; color: var(--muted);">人</span>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
+                <div class="right-col" style="display: flex; flex-direction: column; gap: 20px;">
                     <section class="panel flex-1">
                         <div class="panel-header">
                             <div>
-                                <h3>核心效率分布矩阵</h3>
+                                <h3>告警资源类型</h3>
                             </div>
-                            <div class="panel-badge">单位：分钟</div>
                         </div>
-                        <div id="hq-compare-chart" class="chart"></div>
+                        <div id="left-chart-1" class="chart"></div>
                     </section>
-
                     <section class="panel flex-1">
                         <div class="panel-header">
                             <div>
-                                <h3>告警闭环状态分布</h3>
+                                <h3>告警主题TOP10</h3>
                             </div>
-                            <div class="panel-badge">全国汇总</div>
                         </div>
-                        <div id="hq-closure-chart" class="chart"></div>
+                        <div id="left-chart-2" class="chart"></div>
                     </section>
                 </div>
             </section>

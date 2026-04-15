@@ -4,13 +4,13 @@ createApp({
     data() {
         return {
             currentView: 'hq',
-            selectedRange: '30d',
+            selectedRange: 'today',
             sortMetric: 'unhandledAlerts',
             currentTime: '',
             charts: {},
             timeRanges: [],
             sortMetrics: [],
-            selectedHospitalId: 'shanghai',
+            selectedHospitalId: '',
             hospitals: []
         };
     },
@@ -20,7 +20,7 @@ createApp({
         },
         activeSortLabel() {
             const metric = this.sortMetrics.find((item) => item.value === this.sortMetric);
-            return metric ? metric.label : '未处理告警';
+            return metric ? metric.label : '未认领';
         },
         sortedHospitals() {
             return [...this.hospitals].sort((first, second) => {
@@ -30,15 +30,17 @@ createApp({
             });
         },
         hqCards() {
-            const active = this.hospitals.reduce((sum, item) => sum + item.activeAlerts, 0);
-            const abnormal = this.hospitals.filter((item) => item.status !== 'normal').length;
-            const unhandled = this.hospitals.reduce((sum, item) => sum + item.unhandledAlerts, 0);
-            const fast = this.hospitals.filter((item) => item.mttaValue <= 10).length;
+            const mttaAvg = this.hospitals.length ? (this.hospitals.reduce((sum, item) => sum + item.mttaValue, 0) / this.hospitals.length).toFixed(1) : '0';
+            const mttrAvg = this.hospitals.length ? (this.hospitals.reduce((sum, item) => sum + item.mttrValue, 0) / this.hospitals.length).toFixed(1) : '0';
+
+            // 总部运维视角管理成效核心指标
             return [
-                { label: '接入医院总数', value: '18', note: '已完成全国重点区域布点', trendDirection: 'up', trendGood: true, trendText: '本季新增 3 家', tone: 'info' },
-                { label: '异常医院数', value: String(abnormal).padStart(2, '0'), note: '黄色 / 红色医院需要重点跟踪', trendDirection: 'down', trendGood: true, trendText: '较上周减少 2 家', tone: 'warn' },
-                { label: '全国活动告警', value: String(active), note: '未处理告警 ' + unhandled + ' 条', trendDirection: 'down', trendGood: true, trendText: '环比下降 11%', tone: 'info' },
-                { label: '快速响应医院', value: String(fast), note: 'MTTA ≤ 10 分钟', trendDirection: 'up', trendGood: true, trendText: '达标率 67%', tone: 'good' }
+                { label: '监控覆盖度', value: '99.2%', yoyDir: 'up', yoyGood: true, yoyText: '3.1%', momDir: 'up', momGood: true, momText: '0.5%', tone: 'good' },
+                { label: '故障命中率', value: '94.8%', yoyDir: 'up', yoyGood: true, yoyText: '5.2%', momDir: 'down', momGood: false, momText: '1.2%', tone: 'info' },
+                { label: '一线解决率', value: '87.5%', yoyDir: 'up', yoyGood: true, yoyText: '4.5%', momDir: 'up', momGood: true, momText: '2.1%', tone: 'good' },
+                { label: '操作合规率', value: '99.8%', yoyDir: 'up', yoyGood: true, yoyText: '1.2%', momDir: 'up', momGood: true, momText: '0.1%', tone: 'info' },
+                { label: '平均响应时间', value: mttaAvg + ' m', yoyDir: 'down', yoyGood: true, yoyText: '1.2m', momDir: 'down', momGood: true, momText: '0.3m', tone: 'good' },
+                { label: '平均恢复时间', value: mttrAvg + ' m', yoyDir: 'down', yoyGood: true, yoyText: '5.5m', momDir: 'up', momGood: false, momText: '0.8m', tone: 'good' }
             ];
         },
         hospitalCards() {
@@ -160,11 +162,149 @@ createApp({
                 this.renderChina3DMap();
                 this.renderHqCompareChart();
                 this.renderClosureChart();
+                this.renderLeftChart1();
+                this.renderLeftChart2();
             } else {
                 this.renderHospitalAlertChart();
                 this.renderHospitalResponseChart();
                 this.renderHospitalTimeoutChart();
             }
+        },
+        renderLeftChart1() {
+            const chart = this.ensureChart('leftChart1', 'left-chart-1');
+            if (!chart) return;
+            const systems = ['RocketMQ', 'ElasticSearch', 'Logstash', 'Kibana', 'Doris', 'Redis', 'OpenGauss', 'Oracle', '海量DB', '达梦', '金仓', '数盈平台', 'HIOS技术', 'HIOS集成', 'HIOS基础', 'HIOS版本', 'HIOS护士', 'HIOS医生', 'HIOS专科', '临床LIS', '临床区域检验', '临床急诊', '临床手麻', '临床ICU', '设备连接', '影像PACS', '影像VNA', '区域医疗公卫'];
+
+            const data = systems.map(sys => {
+                return {
+                    name: sys,
+                    value: Math.floor(Math.random() * 50) + 10 // 随机生成告警总数
+                };
+            });
+
+            const option = {
+                tooltip: {
+                    formatter: '{b}<br/>告警总数: <span style="font-weight:bold;color:#00f3ff">{c}</span>',
+                    backgroundColor: 'rgba(7, 19, 32, 0.9)',
+                    borderColor: '#00f3ff',
+                    textStyle: { color: '#fff' }
+                },
+                series: [
+                    {
+                        name: '核心系统监控',
+                        type: 'treemap',
+                        roam: false,
+                        width: '100%',
+                        height: '100%',
+                        data: data,
+                        breadcrumb: { show: false },
+                        itemStyle: {
+                            borderColor: '#0d2235',
+                            borderWidth: 1,
+                            gapWidth: 1
+                        },
+                        label: { show: true, formatter: '{b}\n{c}' }
+                    }
+                ]
+            };
+            chart.setOption(option);
+        },
+        renderLeftChart2() {
+            const chart = this.ensureChart('leftChart2', 'left-chart-2');
+            if (!chart) return;
+            const alerts = [
+                { name: '预警链路断连', value: 342 },
+                { name: '主机不可用', value: 289 },
+                { name: '主机CPU利用率过高', value: 245 },
+                { name: '主机内存使用率过高', value: 210 },
+                { name: '主机存储空间使用率过高', value: 189 },
+                { name: '主机重启', value: 156 },
+                { name: '主机网络流速过高', value: 120 },
+                { name: '主机连接数过高', value: 98 },
+                { name: 'DB服务不可用', value: 76 },
+                { name: 'DB节点宕机', value: 45 }
+            ];
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    backgroundColor: 'rgba(7, 19, 32, 0.9)',
+                    borderColor: '#00f3ff',
+                    textStyle: { color: '#fff' }
+                },
+                grid: { top: 0, right: 30, bottom: 0, left: 10, containLabel: true },
+                xAxis: {
+                    type: 'value',
+                    show: false,
+                    splitLine: { show: false }
+                },
+                yAxis: {
+                    type: 'category',
+                    inverse: true,
+                    data: alerts.map(a => a.name),
+                    axisLabel: { color: '#e9f5ff', fontSize: 11 },
+                    axisLine: { show: false },
+                    axisTick: { show: false }
+                },
+                series: [
+                    {
+                        name: '告警次数',
+                        type: 'bar',
+                        barWidth: 10,
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+                                { offset: 0, color: '#00f3ff' },
+                                { offset: 1, color: 'rgba(0, 243, 255, 0.1)' }
+                            ]),
+                            borderRadius: [0, 4, 4, 0]
+                        },
+                        data: alerts.map(a => a.value),
+                        label: {
+                            show: true,
+                            position: 'right',
+                            color: '#00f3ff',
+                            fontSize: 12,
+                            fontWeight: 'bold'
+                        }
+                    }
+                ]
+            };
+            chart.setOption(option);
+        },
+        renderLeftChart3() {
+            const chart = this.ensureChart('leftChart3', 'left-chart-3');
+            if (!chart) return;
+            const names = this.hospitals.map((item) => item.alias || item.name);
+            const option = {
+                tooltip: { trigger: 'axis', backgroundColor: 'rgba(7, 19, 32, 0.9)', borderColor: '#00f3ff', textStyle: { color: '#fff' } },
+                grid: { top: 40, right: 20, bottom: 40, left: 40, containLabel: true },
+                legend: { top: 0, textStyle: { color: '#88aef6' }, itemWidth: 14 },
+                xAxis: {
+                    type: 'category',
+                    data: names,
+                    axisLabel: { color: '#88aef6', interval: 0, rotate: 15, fontSize: 11 },
+                    axisLine: { lineStyle: { color: 'rgba(0,243,255,0.2)' } }
+                },
+                yAxis: { type: 'value', axisLabel: { color: '#88aef6' }, splitLine: { lineStyle: { color: 'rgba(0,243,255,0.1)', type: 'dashed' } } },
+                series: [
+                    {
+                        name: '告警产生量',
+                        type: 'bar',
+                        barWidth: 12,
+                        itemStyle: { color: '#ff2a2a', borderRadius: [4, 4, 0, 0] },
+                        data: [185, 120, 140, 155]
+                    },
+                    {
+                        name: '告警解决量',
+                        type: 'bar',
+                        barWidth: 12,
+                        itemStyle: { color: '#00ff88', borderRadius: [4, 4, 0, 0] },
+                        data: [172, 105, 138, 140]
+                    }
+                ]
+            };
+            chart.setOption(option);
         },
         async renderChina3DMap() {
             const chart = this.ensureChart('china3d', 'china-map-chart');
@@ -174,14 +314,19 @@ createApp({
 
             const scatterData = this.hospitals.map((item) => ({
                 name: item.name,
-                value: [...item.coord, item.activeAlerts * 2.5],
+                alias: item.alias,
+                value: [...item.coord, 15],
                 hospitalId: item.id,
                 status: item.status,
                 city: item.city,
+                level: item.level,
                 unhandledAlerts: item.unhandledAlerts,
                 mtta: item.mtta,
                 mttr: item.mttr,
-                activeAlerts: item.activeAlerts
+                activeAlerts: item.activeAlerts,
+                label: {
+                    position: item.id === 'beijing' ? 'left' : 'right'
+                }
             }));
 
             try {
@@ -201,10 +346,11 @@ createApp({
                             if (params.seriesType === 'scatter3D') {
                                 const data = params.data;
                                 return [
-                                    '<div style="font-weight:700;margin-bottom:6px;font-size:16px;">' + data.name + '</div>',
-                                    '<div style="font-size:13px;color:#5e8baf;margin-bottom:4px">' + data.city + ' · ' + this.statusText(data.status) + '</div>',
-                                    '<div style="font-size:13px;color:#fff">活动告警：<span style="color:' + colorMap[data.status] + ';font-weight:700">' + data.activeAlerts + '</span></div>',
-                                    '<div style="font-size:13px;color:#fff">未处理：<span style="color:#00f3ff;font-weight:700">' + data.unhandledAlerts + '</span></div>'
+                                    '<div style="font-weight:700;margin-bottom:6px;font-size:16px;" title="' + data.name + '">' + (data.alias || data.name) + '</div>',
+                                    '<div style="font-size:13px;color:#5e8baf;margin-bottom:4px">' + data.city + ' · ' + data.level + '</div>',
+                                    '<div style="font-size:13px;color:#fff;margin-bottom:2px">未认领：<span style="color:#ff6a6a;font-weight:700">' + data.unhandledAlerts + '</span></div>',
+                                    '<div style="font-size:13px;color:#fff;margin-bottom:2px">处理中：<span style="color:#ffca63;font-weight:700">' + data.activeAlerts + '</span></div>',
+                                    '<div style="font-size:13px;color:#fff">已关闭：<span style="color:#3ed6c6;font-weight:700">' + (data.activeAlerts * 4 + 15) + '</span></div>'
                                 ].join('');
                             }
                             return params.name;
@@ -213,6 +359,7 @@ createApp({
                     geo3D: {
                         map: 'china',
                         roam: true,
+                        silent: true,
                         regionHeight: 4,
                         boxWidth: 105,
                         itemStyle: {
@@ -258,16 +405,15 @@ createApp({
                             type: 'scatter3D',
                             coordinateSystem: 'geo3D',
                             data: scatterData,
-                            symbol: 'pin',
-                            symbolSize: (value) => Math.max(22, 16 + value[2] / 5),
+                            symbol: 'circle',
+                            symbolSize: 18,
                             itemStyle: {
                                 color: (params) => colorMap[params.data.status],
                                 opacity: 1
                             },
                             label: {
                                 show: true,
-                                formatter: '{b}',
-                                position: 'right',
+                                formatter: (params) => params.data.alias || params.data.name,
                                 textStyle: {
                                     color: '#e9f5ff',
                                     fontSize: 12,
@@ -299,19 +445,21 @@ createApp({
         renderHqCompareChart() {
             const chart = this.ensureChart('hqCompare', 'hq-compare-chart');
             if (!chart) return;
-            const names = this.sortedHospitals.map((item) => item.city);
+            const names = this.sortedHospitals.map((item) => item.alias || item.name);
             chart.setOption({
                 tooltip: { trigger: 'axis' },
                 legend: { top: 0, right: 0, textStyle: { color: '#c8e5f5' } },
-                grid: { left: 45, right: 20, bottom: 30, top: 40 },
+                grid: { left: 45, right: 20, bottom: 45, top: 40 },
                 xAxis: {
                     type: 'category',
                     data: names,
-                    axisLabel: { color: '#86a6bc' },
+                    axisLabel: { color: '#86a6bc', interval: 0, rotate: 25, fontSize: 11 },
                     axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
                 },
                 yAxis: {
                     type: 'value',
+                    name: '分钟',
+                    nameTextStyle: { color: '#86a6bc', align: 'left', padding: [0, 20, 0, 0] },
                     axisLabel: { color: '#86a6bc' },
                     splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
                 },
@@ -321,7 +469,14 @@ createApp({
                         type: 'bar',
                         barWidth: 16,
                         data: this.sortedHospitals.map((item) => item.mttaValue),
-                        itemStyle: { color: '#36d8c6', borderRadius: [8, 8, 0, 0] }
+                        itemStyle: { color: '#36d8c6', borderRadius: [8, 8, 0, 0] },
+                        markLine: {
+                            data: [
+                                { type: 'average', name: '平均值' }
+                            ],
+                            lineStyle: { type: 'dashed', color: '#36d8c6' },
+                            label: { position: 'end', formatter: '平均\n{c}' }
+                        }
                     },
                     {
                         name: 'MTTR',
@@ -331,7 +486,14 @@ createApp({
                         data: this.sortedHospitals.map((item) => item.mttrValue),
                         lineStyle: { color: '#ffca63', width: 3 },
                         itemStyle: { color: '#ffca63' },
-                        areaStyle: { color: 'rgba(255, 202, 99, 0.12)' }
+                        areaStyle: { color: 'rgba(255, 202, 99, 0.12)' },
+                        markLine: {
+                            data: [
+                                { type: 'average', name: '平均值' }
+                            ],
+                            lineStyle: { type: 'dashed', color: '#ffca63' },
+                            label: { position: 'end', formatter: '平均\n{c}' }
+                        }
                     }
                 ]
             });
@@ -353,9 +515,9 @@ createApp({
                     labelLine: { lineStyle: { color: 'rgba(123,214,255,0.25)' } },
                     itemStyle: { borderColor: '#081825', borderWidth: 4 },
                     data: [
-                        { value: closed, name: '已闭环工单', itemStyle: { color: '#3ed6c6' } },
-                        { value: active, name: '活动告警', itemStyle: { color: '#ffca63' } },
-                        { value: unhandled, name: '未处理告警', itemStyle: { color: '#ff6a6a' } }
+                        { value: closed, name: '已关闭', itemStyle: { color: '#3ed6c6' } },
+                        { value: active, name: '处理中', itemStyle: { color: '#ffca63' } },
+                        { value: unhandled, name: '未认领', itemStyle: { color: '#ff6a6a' } }
                     ]
                 }],
                 graphic: [{
