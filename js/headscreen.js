@@ -359,7 +359,7 @@ createApp({
                     geo: {
                         map: 'china',
                         roam: true,
-                        layoutCenter: ['50%', '50%'],
+                        layoutCenter: ['50%', '62%'], // 调整地图向下偏移
                         layoutSize: '100%',
                         itemStyle: {
                             areaColor: 'rgba(8, 28, 51, 0.8)',
