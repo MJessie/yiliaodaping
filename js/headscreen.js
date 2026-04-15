@@ -315,7 +315,7 @@ createApp({
             const scatterData = this.hospitals.map((item) => ({
                 name: item.name,
                 alias: item.alias,
-                value: [...item.coord, 15],
+                value: [...item.coord],
                 hospitalId: item.id,
                 status: item.status,
                 city: item.city,
@@ -343,7 +343,7 @@ createApp({
                         padding: [12, 16],
                         textStyle: { color: '#e9f5ff' },
                         formatter: (params) => {
-                            if (params.seriesType === 'scatter3D') {
+                            if (params.seriesType === 'effectScatter') {
                                 const data = params.data;
                                 return [
                                     '<div style="font-weight:700;margin-bottom:6px;font-size:16px;" title="' + data.name + '">' + (data.alias || data.name) + '</div>',
@@ -356,57 +356,42 @@ createApp({
                             return params.name;
                         }
                     },
-                    geo3D: {
+                    geo: {
                         map: 'china',
                         roam: true,
-                        silent: true,
-                        regionHeight: 4,
-                        boxWidth: 105,
+                        layoutCenter: ['50%', '50%'],
+                        layoutSize: '100%',
                         itemStyle: {
-                            color: 'rgba(8, 28, 51, 0.8)',
-                            opacity: 0.9,
-                            borderWidth: 1.5,
-                            borderColor: 'rgba(0, 243, 255, 0.6)'
+                            areaColor: 'rgba(8, 28, 51, 0.8)',
+                            borderColor: 'rgba(0, 243, 255, 0.6)',
+                            borderWidth: 1.5
                         },
                         label: {
-                            show: false
+                            show: false,
+                            color: '#e9f5ff'
                         },
                         emphasis: {
                             label: {
-                                show: true,
-                                textStyle: { color: '#00f3ff' }
+                                show: false
                             },
                             itemStyle: {
-                                color: 'rgba(0, 136, 255, 0.4)',
-                                opacity: 1
+                                areaColor: 'rgba(0, 136, 255, 0.4)',
+                                borderColor: 'rgba(0, 243, 255, 1)',
+                                borderWidth: 2
                             }
-                        },
-                        light: {
-                            main: {
-                                intensity: 1.2,
-                                shadow: true,
-                                alpha: 40,
-                                beta: -20
-                            },
-                            ambient: {
-                                intensity: 0.5
-                            }
-                        },
-                        viewControl: {
-                            distance: 90,
-                            alpha: 85,
-                            beta: 0,
-                            center: [-3, 35, 0], // 相机中心向下移动，地图下挂约50px
-                            autoRotate: false
                         }
                     },
                     series: [
                         {
-                            type: 'scatter3D',
-                            coordinateSystem: 'geo3D',
+                            type: 'effectScatter',
+                            coordinateSystem: 'geo',
                             data: scatterData,
-                            symbol: 'circle',
-                            symbolSize: 18,
+                            symbolSize: 14,
+                            showEffectOn: 'render',
+                            rippleEffect: {
+                                brushType: 'stroke',
+                                scale: 3
+                            },
                             itemStyle: {
                                 color: (params) => colorMap[params.data.status],
                                 opacity: 1
@@ -424,7 +409,8 @@ createApp({
                             },
                             emphasis: {
                                 itemStyle: {
-                                    color: '#fff'
+                                    shadowBlur: 10,
+                                    shadowColor: '#fff'
                                 }
                             }
                         }
@@ -433,13 +419,13 @@ createApp({
 
                 chart.off('click');
                 chart.on('click', (params) => {
-                    if (params.seriesType === 'scatter3D' && params.data && params.data.hospitalId) {
+                    if ((params.seriesType === 'scatter' || params.seriesType === 'effectScatter') && params.data && params.data.hospitalId) {
                         this.selectedHospitalId = params.data.hospitalId;
                     }
                 });
 
             } catch (error) {
-                console.error('Failed to load 3D Map:', error);
+                console.error('Failed to load 2D Map:', error);
             }
         },
         renderHqCompareChart() {
