@@ -36,24 +36,22 @@
                                 <h3>运维概况</h3>
                             </div>
                         </div>
-                        <div class="mini-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+                        <div class="mini-grid" style="grid-template-columns: repeat(4, 1fr); gap: 14px;">
+                            <div class="mini-stat">
+                                <div class="small-note">一级运维</div>
+                                <div class="number" style="color: #00ff88;">8</div>
+                            </div>
+                            <div class="mini-stat">
+                                <div class="small-note">二级运维</div>
+                                <div class="number" style="color: #00f3ff;">20</div>
+                            </div>
                             <div class="mini-stat">
                                 <div class="small-note">医院数量</div>
-                                <div class="number" style="color: #ffb800;">{{ hospitals.length }} <span
-                                        style="font-size: 14px; font-weight: normal; color: var(--muted);">家</span>
-                                </div>
+                                <div class="number" style="color: #ffb800;">{{ hospitals.length }}</div>
                             </div>
                             <div class="mini-stat">
-                                <div class="small-note">一线现场运维</div>
-                                <div class="number" style="color: #00ff88;">8 <span
-                                        style="font-size: 14px; font-weight: normal; color: var(--muted);">人</span>
-                                </div>
-                            </div>
-                            <div class="mini-stat">
-                                <div class="small-note">二线技术专家</div>
-                                <div class="number" style="color: #00f3ff;">20 <span
-                                        style="font-size: 14px; font-weight: normal; color: var(--muted);">人</span>
-                                </div>
+                                <div class="small-note">运维对象</div>
+                                <div class="number" style="color: #ffca63;">426</div>
                             </div>
                         </div>
                     </section>
@@ -85,7 +83,10 @@
                     <!-- HUD Stats overlaid bottom center -->
                     <div class="hud-stats">
                         <article v-for="card in hqCards" :key="card.label" class="metric-card"
-                            :class="card.tone ? 'tone-' + card.tone : ''">
+                            :class="card.tone ? 'tone-' + card.tone : ''" @click="openMetricModal(card)"
+                            style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                            onmouseover="this.style.boxShadow='0 0 15px rgba(0, 243, 255, 0.4)'; this.style.transform='translateY(-2px)';"
+                            onmouseout="this.style.boxShadow='none'; this.style.transform='translateY(0)';">
                             <div class="label">{{ card.label }}</div>
                             <div class="value">{{ card.value }}</div>
                             <div class="bottom-row">
@@ -105,21 +106,41 @@
                     <section class="panel flex-1">
                         <div class="panel-header">
                             <div>
-                                <h3>告警资源类型</h3>
-                            </div>
-                        </div>
-                        <div id="left-chart-1" class="chart"></div>
-                    </section>
-                    <section class="panel flex-1">
-                        <div class="panel-header">
-                            <div>
                                 <h3>告警主题TOP10</h3>
                             </div>
                         </div>
                         <div id="left-chart-2" class="chart"></div>
                     </section>
+                    <section class="panel flex-1">
+                        <div class="panel-header">
+                            <div>
+                                <h3>告警资源类型</h3>
+                            </div>
+                        </div>
+                        <div id="left-chart-1" class="chart"></div>
+                    </section>
                 </div>
             </section>
+
+            <!-- Metric Trend Modal -->
+            <div class="modal-overlay" :style="{ display: metricModalVisible ? 'flex' : 'none' }"
+                @click.self="closeMetricModal"
+                style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(3px);">
+                <div class="modal-content"
+                    style="background: rgba(10, 24, 43, 0.95); border: 1px solid rgba(0, 243, 255, 0.3); border-radius: 12px; width: 760px; padding: 20px; box-shadow: 0 0 40px rgba(0,0,0,0.8);">
+                    <div class="modal-header"
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; border-bottom: 1px solid rgba(0, 243, 255, 0.2); padding-bottom: 15px;">
+                        <h3
+                            style="margin: 0; color: #00f3ff; font-size: 18px; letter-spacing: 1px; font-weight: normal;">
+                            {{ activeMetricTitle }}</h3>
+                        <span @click="closeMetricModal"
+                            style="color: #86a6bc; cursor: pointer; font-size: 26px; line-height: 20px; transition: color 0.3s;"
+                            onmouseover="this.style.color='#00f3ff'"
+                            onmouseout="this.style.color='#86a6bc'">&times;</span>
+                    </div>
+                    <div id="metric-trend-chart" style="width: 100%; height: 380px;"></div>
+                </div>
+            </div>
 
         </div>
     </div>

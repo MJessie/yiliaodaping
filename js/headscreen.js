@@ -11,7 +11,9 @@ createApp({
             timeRanges: [],
             sortMetrics: [],
             selectedHospitalId: '',
-            hospitals: []
+            hospitals: [],
+            metricModalVisible: false,
+            activeMetricTitle: ''
         };
     },
     computed: {
@@ -110,6 +112,65 @@ createApp({
         });
     },
     methods: {
+        openMetricModal(card) {
+            this.metricModalVisible = true;
+            this.activeMetricTitle = card.label;
+            this.$nextTick(() => {
+                this.renderMetricTrendChart(card);
+            });
+        },
+        closeMetricModal() {
+            this.metricModalVisible = false;
+        },
+        renderMetricTrendChart(card) {
+            const chart = this.ensureChart('metricTrend', 'metric-trend-chart');
+            if (!chart) return;
+
+            const days = [];
+            const data = [];
+            const now = new Date();
+            let baseValue = parseFloat(card.value) || 90;
+
+            for (let i = 29; i >= 0; i--) {
+                const d = new Date(now.getTime() - i * 24 * 3600 * 1000);
+                days.push(`${d.getMonth() + 1}-${d.getDate()}`);
+                const val = baseValue * (1 + (Math.random() * 0.08 - 0.04));
+                data.push(val.toFixed(1));
+            }
+
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: 45, right: 20, top: 40, bottom: 40 },
+                xAxis: {
+                    type: 'category',
+                    data: days,
+                    axisLabel: { color: '#86a6bc', rotate: 30, fontSize: 11 },
+                    axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
+                },
+                yAxis: {
+                    type: 'value',
+                    scale: true,
+                    axisLabel: { color: '#86a6bc' },
+                    splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
+                },
+                series: [{
+                    name: card.label,
+                    type: 'line',
+                    data: data,
+                    smooth: true,
+                    lineStyle: { color: '#00f3ff', width: 3 },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(0,243,255,0.4)' },
+                            { offset: 1, color: 'rgba(0,243,255,0.0)' }
+                        ])
+                    },
+                    itemStyle: { color: '#00f3ff' },
+                    symbol: 'emptyCircle',
+                    symbolSize: 6
+                }]
+            });
+        },
         updateTime() {
             const now = new Date();
             const pad = (value) => String(value).padStart(2, '0');
@@ -176,9 +237,21 @@ createApp({
             const systems = ['RocketMQ', 'ElasticSearch', 'Logstash', 'Kibana', 'Doris', 'Redis', 'OpenGauss', 'Oracle', '海量DB', '达梦', '金仓', '数盈平台', 'HIOS技术', 'HIOS集成', 'HIOS基础', 'HIOS版本', 'HIOS护士', 'HIOS医生', 'HIOS专科', '临床LIS', '临床区域检验', '临床急诊', '临床手麻', '临床ICU', '设备连接', '影像PACS', '影像VNA', '区域医疗公卫'];
 
             const data = systems.map(sys => {
+                const val = Math.floor(Math.random() * 50) + 10; // 随机生成告警总数
+                let levelColor = '';
+                if (val >= 45) {
+                    levelColor = 'rgba(255, 42, 42, 0.75)'; // 最高量级 - 红色
+                } else if (val >= 35) {
+                    levelColor = 'rgba(255, 184, 0, 0.65)'; // 高量级 - 橙色
+                } else if (val >= 20) {
+                    levelColor = 'rgba(0, 243, 255, 0.45)'; // 中量级 - 蓝色，降低透明度变淡
+                } else {
+                    levelColor = 'rgba(0, 255, 136, 0.3)'; // 低量级 - 绿色，大幅降低透明度变淡
+                }
                 return {
                     name: sys,
-                    value: Math.floor(Math.random() * 50) + 10 // 随机生成告警总数
+                    value: val,
+                    itemStyle: { color: levelColor }
                 };
             });
 
