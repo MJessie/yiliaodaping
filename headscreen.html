@@ -158,12 +158,20 @@
                                 {{ activeMetricTitle }}</h3>
                             <div v-show="activeMetricTitle === '告警数量趋势图'"
                                 style="display: flex; gap: 15px; align-items: center;">
+                                <select v-model="modalTimeRange"
+                                    style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #86a6bc; padding: 3px 8px; border-radius: 4px; outline: none; font-size: 12px; cursor: pointer;">
+                                    <option value="week" style="background: #0a182b;">近 7 天</option>
+                                    <option value="month" style="background: #0a182b;">近 30 天</option>
+                                    <option value="year" style="background: #0a182b;">近 1 年</option>
+                                </select>
+
                                 <select v-model="modalProject"
                                     style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #86a6bc; padding: 3px 8px; border-radius: 4px; outline: none; font-size: 12px; cursor: pointer;">
                                     <option value="all" style="background: #0a182b;">全部项目</option>
-                                    <option value="p1" style="background: #0a182b;">省立医院项目</option>
-                                    <option value="p2" style="background: #0a182b;">市中心医院项目</option>
-                                    <option value="p3" style="background: #0a182b;">妇幼保健院项目</option>
+                                    <option value="shanghai" style="background: #0a182b;">红安紧密型数字医共体项目</option>
+                                    <option value="beijing" style="background: #0a182b;">武汉大学中南医院RS7项目</option>
+                                    <option value="chengdu" style="background: #0a182b;">射阳县医共体项目</option>
+                                    <option value="guangzhou" style="background: #0a182b;">清华玉泉医院</option>
                                 </select>
 
                                 <select v-model="modalObjType"

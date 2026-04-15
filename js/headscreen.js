@@ -18,7 +18,8 @@ createApp({
             selectedAlertLevels: ['P0', 'P1', 'P2', 'P3'],
             modalAlertLevels: ['P0', 'P1', 'P2', 'P3'],
             modalProject: 'all',
-            modalObjType: 'all'
+            modalObjType: 'all',
+            modalTimeRange: 'month'
         };
     },
     computed: {
@@ -143,6 +144,11 @@ createApp({
                 this.$nextTick(() => this.renderMetricTrendChart(this.activeModalCard));
             }
         },
+        modalTimeRange() {
+            if (this.metricModalVisible && this.activeModalCard) {
+                this.$nextTick(() => this.renderMetricTrendChart(this.activeModalCard));
+            }
+        },
         sortMetric() {
             this.$nextTick(() => this.renderCharts());
         },
@@ -220,6 +226,7 @@ createApp({
             const data = [];
             const now = new Date();
             let baseValue = parseFloat(card.value) || 90;
+            let count = 30;
 
             if (this.activeMetricTitle === '告警数量趋势图') {
                 const ratio = this.modalAlertLevels.length / 4;
@@ -230,11 +237,24 @@ createApp({
                 if (this.modalObjType !== 'all') {
                     baseValue = baseValue * 0.3;
                 }
+
+                if (this.modalTimeRange === 'week') {
+                    count = 7;
+                    baseValue = baseValue * 0.25;
+                } else if (this.modalTimeRange === 'year') {
+                    count = 12;
+                    baseValue = baseValue * 30;
+                }
             }
 
-            for (let i = 29; i >= 0; i--) {
-                const d = new Date(now.getTime() - i * 24 * 3600 * 1000);
-                days.push(`${d.getMonth() + 1}-${d.getDate()}`);
+            for (let i = count - 1; i >= 0; i--) {
+                if (this.activeMetricTitle === '告警数量趋势图' && this.modalTimeRange === 'year') {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    days.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+                } else {
+                    const d = new Date(now.getTime() - i * 24 * 3600 * 1000);
+                    days.push(`${d.getMonth() + 1}-${d.getDate()}`);
+                }
                 const val = baseValue * (1 + (Math.random() * 0.08 - 0.04));
                 data.push(val.toFixed(1));
             }
