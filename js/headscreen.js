@@ -19,7 +19,11 @@ createApp({
             modalAlertLevels: ['P0', 'P1', 'P2', 'P3'],
             modalProject: 'all',
             modalObjType: 'all',
-            modalTimeRange: 'month'
+            modalSkill: 'all',
+            modalRole: 'all',
+            modalTimeRange: 'month',
+            userCurrentPage: 1,
+            userPageSize: 8
         };
     },
     computed: {
@@ -30,9 +34,87 @@ createApp({
             const closed = Math.round(426 * multiplier);
             return active + unhandled + closed;
         },
+        activeUserList() {
+            if (this.activeMetricTitle !== '一级运维' && this.activeMetricTitle !== '二级运维' && this.activeMetricTitle !== '医院数量') return [];
+            let users = [];
+            if (this.activeMetricTitle === '一级运维') {
+                users = [
+                    { name: '王建国', email: 'wangjian@hospital.com', project: 'shanghai', roles: ['项目经理'] },
+                    { name: '李明', email: 'liming@hospital.com', project: 'beijing', roles: ['服务台'] },
+                    { name: '张伟', email: 'zhangw@hospital.com', project: 'chengdu', roles: ['监控工程师'] },
+                    { name: '刘洋', email: 'liuyang@hospital.com', project: 'guangzhou', roles: ['监控工程师', '服务台'] },
+                    { name: '陈强', email: 'chenq@hospital.com', project: 'shanghai', roles: ['服务台'] },
+                    { name: '杨波', email: 'yangbo@hospital.com', project: 'beijing', roles: ['项目经理'] },
+                    { name: '赵勇', email: 'zhaoyong@hospital.com', project: 'chengdu', roles: ['监控工程师'] },
+                    { name: '黄磊', email: 'huanglei@hospital.com', project: 'guangzhou', roles: ['服务台'] }
+                ];
+            } else if (this.activeMetricTitle === '二级运维') {
+                users = [
+                    { name: '孙伟', email: 'sunw@hospital.com', project: 'beijing', skills: ['操作系统工程师', '网络工程师'] },
+                    { name: '周杰', email: 'zhoujie@hospital.com', project: 'shanghai', skills: ['数据库工程师'] },
+                    { name: '吴刚', email: 'wugang@hospital.com', project: 'chengdu', skills: ['网络工程师', '虚拟化工程师', '存储工程师'] },
+                    { name: '郑州', email: 'zhengz@hospital.com', project: 'guangzhou', skills: ['虚拟化工程师'] },
+                    { name: '王飞', email: 'wangf@hospital.com', project: 'beijing', skills: ['存储工程师', '数据库工程师'] },
+                    { name: '李娜', email: 'lina@hospital.com', project: 'shanghai', skills: ['研发工程师'] },
+                    { name: '刘备', email: 'liub@hospital.com', project: 'chengdu', skills: ['操作系统工程师'] },
+                    { name: '关羽', email: 'guanyu@hospital.com', project: 'guangzhou', skills: ['数据库工程师', '虚拟化工程师'] },
+                    { name: '张飞', email: 'zhangf@hospital.com', project: 'shanghai', skills: ['网络工程师'] },
+                    { name: '赵云', email: 'zhaoyun@hospital.com', project: 'beijing', skills: ['虚拟化工程师', '操作系统工程师'] },
+                    { name: '马超', email: 'machao@hospital.com', project: 'chengdu', skills: ['存储工程师'] },
+                    { name: '黄忠', email: 'huangz@hospital.com', project: 'guangzhou', skills: ['研发工程师', '网络工程师'] },
+                    { name: '魏延', email: 'weiy@hospital.com', project: 'beijing', skills: ['操作系统工程师'] },
+                    { name: '诸葛亮', email: 'zhugel@hospital.com', project: 'shanghai', skills: ['数据库工程师', '研发工程师'] },
+                    { name: '司马懿', email: 'simayi@hospital.com', project: 'chengdu', skills: ['网络工程师'] },
+                    { name: '郭嘉', email: 'guojia@hospital.com', project: 'guangzhou', skills: ['虚拟化工程师', '存储工程师'] },
+                    { name: '曹操', email: 'caocao@hospital.com', project: 'beijing', skills: ['存储工程师'] },
+                    { name: '孙权', email: 'sunquan@hospital.com', project: 'shanghai', skills: ['研发工程师'] },
+                    { name: '周瑜', email: 'zhouyu@hospital.com', project: 'chengdu', skills: ['操作系统工程师', '数据库工程师'] },
+                    { name: '陆逊', email: 'luxun@hospital.com', project: 'guangzhou', skills: ['数据库工程师'] }
+                ];
+            } else if (this.activeMetricTitle === '医院数量') {
+                users = this.hospitals.map((h, i) => {
+                    const sn = ['张', '王', '李', '赵', '陈', '刘', '周', '吴', '孙', '黄'];
+                    const gn = ['伟', '芳', '娜', '强', '磊', '洋', '勇', '艳', '杰', '娟'];
+                    return {
+                        name: h.name,
+                        email: '',
+                        phone: h.city || '未知城市',
+                        level: h.level || '无评级',
+                        roles: [
+                            '项目经理: ' + sn[i % 10] + gn[(i + 1) % 10],
+                            '服务台: ' + sn[(i + 2) % 10] + gn[(i + 3) % 10],
+                            '监控工程师: ' + sn[(i + 4) % 10] + gn[(i + 5) % 10]
+                        ]
+                    };
+                });
+            }
+
+            users = users.map((u, index) => ({
+                ...u,
+                phone: u.phone || ('13' + (800000000 + Math.floor(Math.random() * 10000) + index * 1357).toString())
+            }));
+
+            if (this.activeMetricTitle !== '二级运维' && this.modalProject !== 'all') {
+                users = users.filter(u => u.project === this.modalProject);
+            }
+            if (this.activeMetricTitle === '一级运维' && this.modalRole !== 'all') {
+                users = users.filter(u => u.roles && u.roles.includes(this.modalRole));
+            }
+            if (this.activeMetricTitle === '二级运维' && this.modalSkill !== 'all') {
+                users = users.filter(u => u.skills && u.skills.includes(this.modalSkill));
+            }
+            return users;
+        },
         selectedClosedAlerts() {
             const multiplier = this.selectedRange === 'week' ? 6.5 : this.selectedRange === 'month' ? 25 : 1;
             return Math.round(426 * multiplier);
+        },
+        pagedUserList() {
+            const start = (this.userCurrentPage - 1) * this.userPageSize;
+            return this.activeUserList.slice(start, start + this.userPageSize);
+        },
+        userTotalPages() {
+            return Math.ceil(this.activeUserList.length / this.userPageSize) || 1;
         },
         selectedHospital() {
             return this.hospitals.find((item) => item.id === this.selectedHospitalId) || this.hospitals[0];
@@ -135,9 +217,16 @@ createApp({
             }
         },
         modalProject() {
+            this.userCurrentPage = 1;
             if (this.metricModalVisible && this.activeModalCard) {
                 this.$nextTick(() => this.renderMetricTrendChart(this.activeModalCard));
             }
+        },
+        modalSkill() {
+            this.userCurrentPage = 1;
+        },
+        modalRole() {
+            this.userCurrentPage = 1;
         },
         modalObjType() {
             if (this.metricModalVisible && this.activeModalCard) {
@@ -207,6 +296,23 @@ createApp({
                 this.modalAlertLevels.push(level);
             }
         },
+        openUsersModal(title) {
+            this.metricModalVisible = true;
+            this.activeMetricTitle = title;
+            this.activeModalCard = null;
+            this.userCurrentPage = 1;
+
+            if (title === '运维概况') {
+                this.$nextTick(() => {
+                    this.renderOrgChart();
+                });
+            }
+        },
+        changeUserPage(page) {
+            if (page >= 1 && page <= this.userTotalPages) {
+                this.userCurrentPage = page;
+            }
+        },
         openMetricModal(card) {
             this.metricModalVisible = true;
             this.activeMetricTitle = card.label;
@@ -218,6 +324,119 @@ createApp({
         closeMetricModal() {
             this.metricModalVisible = false;
         },
+        renderOrgChart() {
+            const chart = this.ensureChart('orgChart', 'org-chart-container');
+            if (!chart) return;
+
+            const data = {
+                name: '添翼整体解决方案运维团队',
+                children: [
+                    {
+                        name: '一级运维',
+                        children: [
+                            { name: '项目经理', value: 2 },
+                            { name: '服务台', value: 3 },
+                            { name: '监控工程师', value: 3 }
+                        ]
+                    },
+                    {
+                        name: '二级运维',
+                        children: [
+                            { name: '网络工程师', value: 4 },
+                            { name: '数据库工程师', value: 5 },
+                            { name: '中间件工程师', value: 3 },
+                            { name: '操作系统工程师', value: 4 },
+                            { name: '虚拟化工程师', value: 4 },
+                            { name: '存储工程师', value: 4 },
+                            { name: 'CNIP工程师', value: 4 },
+                            { name: '数盈平台工程师', value: 4 },
+                            {
+                                name: '研发工程师',
+                                children: [
+                                    { name: 'HIOS-技术', value: 1 },
+                                    { name: 'HIOS-集成', value: 1 },
+                                    { name: 'HIOS-基础', value: 1 },
+                                    { name: 'HIOS-版本', value: 1 },
+                                    { name: 'HIOS-护士', value: 1 },
+                                    { name: 'HIOS-医生', value: 1 },
+                                    { name: 'HIOS-专科', value: 1 },
+                                    { name: '临床-LIS', value: 1 },
+                                    { name: '临床-区域检验', value: 1 },
+                                    { name: '临床-急诊', value: 1 },
+                                    { name: '临床-手麻', value: 1 },
+                                    { name: '临床-ICU', value: 1 },
+                                    { name: '设备-连接', value: 1 },
+                                    { name: '影像-PACS', value: 1 },
+                                    { name: '影像-VNA', value: 1 },
+                                    { name: '区域医疗-公卫', value: 1 }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            };
+
+            chart.setOption({
+                tooltip: {
+                    trigger: 'item',
+                    triggerOn: 'mousemove',
+                    backgroundColor: 'rgba(10, 24, 43, 0.9)',
+                    borderColor: '#00f3ff',
+                    textStyle: { color: '#fff' }
+                },
+                series: [
+                    {
+                        type: 'tree',
+                        data: [data],
+                        orient: 'TB',
+                        top: '15%',
+                        left: '2%',
+                        bottom: '20%',
+                        right: '2%',
+                        symbolSize: 10,
+                        itemStyle: {
+                            color: '#00f3ff',
+                            borderColor: '#00f3ff'
+                        },
+                        label: {
+                            position: 'top',
+                            verticalAlign: 'bottom',
+                            align: 'center',
+                            distance: 12,
+                            fontSize: 14,
+                            color: '#e9f5ff',
+                            backgroundColor: 'rgba(0, 243, 255, 0.1)',
+                            borderColor: 'rgba(0, 243, 255, 0.3)',
+                            borderWidth: 1,
+                            padding: [6, 12],
+                            borderRadius: 4
+                        },
+                        leaves: {
+                            label: {
+                                position: 'bottom',
+                                rotate: 0,
+                                verticalAlign: 'top',
+                                align: 'center',
+                                distance: 10,
+                                fontSize: 12,
+                                padding: [4, 4],
+                                backgroundColor: 'rgba(255, 184, 0, 0.1)',
+                                borderColor: 'rgba(255, 184, 0, 0.3)',
+                                color: '#ffb800'
+                            }
+                        },
+                        lineStyle: {
+                            color: 'rgba(0, 243, 255, 0.4)',
+                            width: 1.5,
+                            curveness: 0.5
+                        },
+                        expandAndCollapse: true,
+                        animationDuration: 550,
+                        animationDurationUpdate: 750
+                    }
+                ]
+            }, true);
+        },
         renderMetricTrendChart(card) {
             const chart = this.ensureChart('metricTrend', 'metric-trend-chart');
             if (!chart) return;
@@ -228,27 +447,36 @@ createApp({
             let baseValue = parseFloat(card.value) || 90;
             let count = 30;
 
-            if (this.activeMetricTitle === '告警数量趋势图') {
+            const isRate = String(card.value).includes('%');
+
+            if (this.modalTimeRange === 'week') {
+                count = 7;
+                if (!isRate && this.activeMetricTitle === '告警趋势') baseValue = baseValue * 0.25;
+            } else if (this.modalTimeRange === 'year') {
+                count = 12;
+                if (!isRate && this.activeMetricTitle === '告警趋势') baseValue = baseValue * 30;
+            }
+
+            if (this.modalProject !== 'all') {
+                if (this.activeMetricTitle === '告警趋势') {
+                    baseValue = baseValue * 0.4;
+                } else if (isRate) {
+                    baseValue = baseValue * (1 - Math.random() * 0.05);
+                } else {
+                    baseValue = baseValue * (1 - Math.random() * 0.1);
+                }
+            }
+
+            if (this.activeMetricTitle === '告警趋势') {
                 const ratio = this.modalAlertLevels.length / 4;
                 baseValue = baseValue * ratio;
-                if (this.modalProject !== 'all') {
-                    baseValue = baseValue * 0.4;
-                }
                 if (this.modalObjType !== 'all') {
                     baseValue = baseValue * 0.3;
-                }
-
-                if (this.modalTimeRange === 'week') {
-                    count = 7;
-                    baseValue = baseValue * 0.25;
-                } else if (this.modalTimeRange === 'year') {
-                    count = 12;
-                    baseValue = baseValue * 30;
                 }
             }
 
             for (let i = count - 1; i >= 0; i--) {
-                if (this.activeMetricTitle === '告警数量趋势图' && this.modalTimeRange === 'year') {
+                if (this.modalTimeRange === 'year') {
                     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
                     days.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
                 } else {
@@ -626,6 +854,13 @@ createApp({
                 chart.on('click', (params) => {
                     if ((params.seriesType === 'scatter' || params.seriesType === 'effectScatter') && params.data && params.data.hospitalId) {
                         this.selectedHospitalId = params.data.hospitalId;
+                    }
+                });
+
+                chart.off('dblclick');
+                chart.on('dblclick', (params) => {
+                    if ((params.seriesType === 'scatter' || params.seriesType === 'effectScatter') && params.data && params.data.hospitalId) {
+                        this.openHospital(params.data.hospitalId);
                     }
                 });
 

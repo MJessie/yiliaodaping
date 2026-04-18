@@ -31,21 +31,30 @@
             <section class="view layout-3d">
                 <div class="left-col" style="display: flex; flex-direction: column; gap: 20px;">
                     <section class="panel">
-                        <div class="panel-header" style="margin-bottom: 10px;">
+                        <div class="panel-header"
+                            style="margin-bottom: 10px; cursor: pointer; transition: text-shadow 0.2s;"
+                            onmouseover="this.style.textShadow='0 0 8px rgba(0, 243, 255, 0.6)'"
+                            onmouseout="this.style.textShadow='none'" @click="openUsersModal('运维概况')">
                             <div>
                                 <h3>运维概况</h3>
                             </div>
                         </div>
                         <div class="mini-grid" style="grid-template-columns: repeat(4, 1fr); gap: 14px;">
-                            <div class="mini-stat">
+                            <div class="mini-stat" style="cursor: pointer; transition: text-shadow 0.2s;"
+                                onmouseover="this.style.textShadow='0 0 8px rgba(0, 255, 136, 0.6)'"
+                                onmouseout="this.style.textShadow='none'" @click="openUsersModal('一级运维')">
                                 <div class="small-note">一级运维</div>
                                 <div class="number" style="color: #00ff88;">8</div>
                             </div>
-                            <div class="mini-stat">
+                            <div class="mini-stat" style="cursor: pointer; transition: text-shadow 0.2s;"
+                                onmouseover="this.style.textShadow='0 0 8px rgba(0, 243, 255, 0.6)'"
+                                onmouseout="this.style.textShadow='none'" @click="openUsersModal('二级运维')">
                                 <div class="small-note">二级运维</div>
                                 <div class="number" style="color: #00f3ff;">20</div>
                             </div>
-                            <div class="mini-stat">
+                            <div class="mini-stat" style="cursor: pointer; transition: text-shadow 0.2s;"
+                                onmouseover="this.style.textShadow='0 0 8px rgba(255, 184, 0, 0.6)'"
+                                onmouseout="this.style.textShadow='none'" @click="openUsersModal('医院数量')">
                                 <div class="small-note">医院数量</div>
                                 <div class="number" style="color: #ffb800;">{{ hospitals.length }}</div>
                             </div>
@@ -65,7 +74,7 @@
                             <div style="font-size: 14px; color: #86a6bc; cursor: pointer; transition: text-shadow 0.2s;"
                                 onmouseover="this.style.textShadow='0 0 8px rgba(0, 243, 255, 0.6)'"
                                 onmouseout="this.style.textShadow='none'"
-                                @click="openMetricModal({ label: '告警数量趋势图', value: totalAlerts })">
+                                @click="openMetricModal({ label: '告警趋势', value: totalAlerts })">
                                 告警总数 <span
                                     style="color: #00f3ff; font-weight: bold; font-size: 16px; margin-left: 4px;">{{
                                     totalAlerts }}</span>
@@ -149,23 +158,27 @@
                 @click.self="closeMetricModal"
                 style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(3px);">
                 <div class="modal-content"
-                    style="background: rgba(10, 24, 43, 0.95); border: 1px solid rgba(0, 243, 255, 0.3); border-radius: 12px; width: 760px; padding: 20px; box-shadow: 0 0 40px rgba(0,0,0,0.8);">
+                    :style="{ width: activeMetricTitle === '运维概况' ? '1800px' : (activeMetricTitle === '医院数量' ? '960px' : '760px') }"
+                    style="background: rgba(10, 24, 43, 0.95); border: 1px solid rgba(0, 243, 255, 0.3); border-radius: 12px; padding: 20px; box-shadow: 0 0 40px rgba(0,0,0,0.8);">
                     <div class="modal-header"
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; border-bottom: 1px solid rgba(0, 243, 255, 0.2); padding-bottom: 15px;">
                         <div style="display: flex; align-items: center; gap: 20px;">
                             <h3
                                 style="margin: 0; color: #00f3ff; font-size: 18px; letter-spacing: 1px; font-weight: normal;">
                                 {{ activeMetricTitle }}</h3>
-                            <div v-show="activeMetricTitle === '告警数量趋势图'"
-                                style="display: flex; gap: 15px; align-items: center;">
-                                <select v-model="modalTimeRange"
+                            <div style="display: flex; gap: 15px; align-items: center;">
+                                <select
+                                    v-show="activeMetricTitle !== '一级运维' && activeMetricTitle !== '二级运维' && activeMetricTitle !== '医院数量' && activeMetricTitle !== '运维概况'"
+                                    v-model="modalTimeRange"
                                     style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #86a6bc; padding: 3px 8px; border-radius: 4px; outline: none; font-size: 12px; cursor: pointer;">
                                     <option value="week" style="background: #0a182b;">近 7 天</option>
                                     <option value="month" style="background: #0a182b;">近 30 天</option>
                                     <option value="year" style="background: #0a182b;">近 1 年</option>
                                 </select>
 
-                                <select v-model="modalProject"
+                                <select
+                                    v-show="activeMetricTitle !== '二级运维' && activeMetricTitle !== '医院数量' && activeMetricTitle !== '运维概况'"
+                                    v-model="modalProject"
                                     style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #86a6bc; padding: 3px 8px; border-radius: 4px; outline: none; font-size: 12px; cursor: pointer;">
                                     <option value="all" style="background: #0a182b;">全部项目</option>
                                     <option value="shanghai" style="background: #0a182b;">红安紧密型数字医共体项目</option>
@@ -174,7 +187,30 @@
                                     <option value="guangzhou" style="background: #0a182b;">清华玉泉医院</option>
                                 </select>
 
-                                <select v-model="modalObjType"
+                                <select v-show="activeMetricTitle === '一级运维'" v-model="modalRole"
+                                    style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #86a6bc; padding: 3px 8px; border-radius: 4px; outline: none; font-size: 12px; cursor: pointer;">
+                                    <option value="all" style="background: #0a182b;">全部岗位</option>
+                                    <option value="项目经理" style="background: #0a182b;">项目经理</option>
+                                    <option value="服务台" style="background: #0a182b;">服务台</option>
+                                    <option value="监控工程师" style="background: #0a182b;">监控工程师</option>
+                                </select>
+
+                                <select v-show="activeMetricTitle === '二级运维'" v-model="modalSkill"
+                                    style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #86a6bc; padding: 3px 8px; border-radius: 4px; outline: none; font-size: 12px; cursor: pointer;">
+                                    <option value="all" style="background: #0a182b;">全部技能</option>
+                                    <option value="网络工程师" style="background: #0a182b;">网络工程师</option>
+                                    <option value="存储工程师" style="background: #0a182b;">存储工程师</option>
+                                    <option value="数据库工程师" style="background: #0a182b;">数据库工程师</option>
+                                    <option value="中间件工程师" style="background: #0a182b;">中间件工程师</option>
+                                    <option value="操作系统工程师" style="background: #0a182b;">操作系统工程师</option>
+                                    <option value="虚拟化工程师" style="background: #0a182b;">虚拟化工程师</option>
+                                    <option value="服务器工程师" style="background: #0a182b;">虚拟化工程师</option>
+                                    <option value="CNIP工程师" style="background: #0a182b;">CNIP工程师</option>
+                                    <option value="数盈平台工程师" style="background: #0a182b;">数盈平台工程师</option>
+                                    <option value="研发工程师" style="background: #0a182b;">研发工程师</option>
+                                </select>
+
+                                <select v-show="activeMetricTitle === '告警趋势'" v-model="modalObjType"
                                     style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #86a6bc; padding: 3px 8px; border-radius: 4px; outline: none; font-size: 12px; cursor: pointer;">
                                     <option value="all" style="background: #0a182b;">全部监控类型</option>
                                     <option value="host" style="background: #0a182b;">主机</option>
@@ -184,7 +220,7 @@
                                     <option value="storage" style="background: #0a182b;">存储</option>
                                 </select>
 
-                                <div style="display: flex; gap: 6px;">
+                                <div v-show="activeMetricTitle === '告警趋势'" style="display: flex; gap: 6px;">
                                     <div v-for="lvl in ['P0', 'P1', 'P2', 'P3']" :key="'modal-'+lvl"
                                         @click="toggleModalAlertLevel(lvl)" :style="{
                                              cursor: 'pointer', padding: '2px 8px', fontSize: '12px', borderRadius: '4px',
@@ -203,7 +239,90 @@
                             onmouseover="this.style.color='#00f3ff'"
                             onmouseout="this.style.color='#86a6bc'">&times;</span>
                     </div>
-                    <div id="metric-trend-chart" style="width: 100%; height: 380px;"></div>
+                    <div v-show="activeMetricTitle !== '一级运维' && activeMetricTitle !== '二级运维' && activeMetricTitle !== '医院数量' && activeMetricTitle !== '运维概况'"
+                        id="metric-trend-chart" style="width: 100%; height: 380px;"></div>
+                    <div v-show="activeMetricTitle === '运维概况'" id="org-chart-container"
+                        style="width: 100%; height: 680px;"></div>
+                    <div v-show="activeMetricTitle === '一级运维' || activeMetricTitle === '二级运维' || activeMetricTitle === '医院数量'"
+                        style="width: 100%; height: 460px; display: flex; flex-direction: column; overflow: hidden; padding: 10px;">
+                        <div
+                            style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; flex-grow: 1; align-content: start;">
+                            <div v-for="user in pagedUserList" :key="user.email"
+                                style="background: rgba(0, 243, 255, 0.05); border: 1px solid rgba(0, 243, 255, 0.2); padding: 15px; border-radius: 6px; display: flex; align-items: center; gap: 15px; transition: transform 0.2s, box-shadow 0.2s; overflow: hidden;"
+                                onmouseover="this.style.boxShadow='0 0 10px rgba(0, 243, 255, 0.2)'; this.style.transform='translateY(-2px)';"
+                                onmouseout="this.style.boxShadow='none'; this.style.transform='translateY(0)';">
+                                <div
+                                    style="width: 40px; height: 40px; border-radius: 50%; background: rgba(0, 243, 255, 0.2); display: flex; align-items: center; justify-content: center; color: #00f3ff; font-weight: bold; font-size: 16px; flex-shrink: 0;">
+                                    {{ user.name[0] }}
+                                </div>
+                                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+                                        <span
+                                            style="color: #e9f5ff; font-size: 15px; font-weight: bold; white-space: nowrap; flex-shrink: 0;">{{
+                                            user.name }}</span>
+                                        <span v-if="user.level"
+                                            style="font-size: 11px; padding: 2px 6px; background: rgba(0, 255, 136, 0.15); border-radius: 4px; color: #00ff88; font-weight: normal; white-space: nowrap; flex-shrink: 0;">
+                                            {{ user.level }}
+                                        </span>
+                                        <span
+                                            style="color: #86a6bc; font-size: 12px; font-family: monospace; white-space: nowrap; flex-shrink: 0;">{{
+                                            user.phone }}</span>
+                                        <span
+                                            style="color: #86a6bc; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">{{
+                                            user.email }}</span>
+                                    </div>
+                                    <div v-if="(user.skills && user.skills.length) || (user.roles && user.roles.length)"
+                                        style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                        <span v-for="role in user.roles" :key="role"
+                                            style="font-size: 11px; padding: 2px 6px; background: rgba(255, 184, 0, 0.1); border: 1px solid rgba(255, 184, 0, 0.4); border-radius: 4px; color: #ffb800; font-weight: normal; white-space: nowrap;">
+                                            {{ role }}
+                                        </span>
+                                        <span v-for="skill in user.skills" :key="skill"
+                                            style="font-size: 11px; padding: 2px 6px; background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.4); border-radius: 4px; color: #00f3ff; font-weight: normal; white-space: nowrap;">
+                                            {{ skill }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-if="activeUserList.length === 0"
+                                style="color: #86a6bc; padding: 20px; grid-column: span 2; text-align: center;">
+                                暂无数据
+                            </div>
+                        </div>
+
+                        <!-- Pagination Control -->
+                        <div v-if="activeUserList.length > 0"
+                            style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 15px;">
+                            <span style="color: #86a6bc; font-size: 14px;">共 <span
+                                    style="color: #00f3ff; font-weight: bold;">{{ activeUserList.length }}</span>
+                                条</span>
+
+                            <button @click="changeUserPage(userCurrentPage - 1)" :disabled="userCurrentPage === 1"
+                                style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #00f3ff; padding: 4px 10px; border-radius: 4px; cursor: pointer; outline: none;"
+                                :style="{ opacity: userCurrentPage === 1 ? 0.5 : 1, cursor: userCurrentPage === 1 ? 'not-allowed' : 'pointer' }">
+                                &lt;
+                            </button>
+
+                            <div style="display: flex; gap: 8px;">
+                                <div v-for="page in userTotalPages" :key="page" @click="changeUserPage(page)"
+                                    style="width: 28px; height: 28px; display: flex; justify-content: center; align-items: center; border-radius: 4px; cursor: pointer; transition: all 0.2s; font-size: 14px;"
+                                    :style="{
+                                        background: userCurrentPage === page ? 'rgba(0, 243, 255, 0.3)' : 'rgba(0, 243, 255, 0.05)',
+                                        border: '1px solid ' + (userCurrentPage === page ? '#00f3ff' : 'rgba(0, 243, 255, 0.2)'),
+                                        color: userCurrentPage === page ? '#fff' : '#86a6bc'
+                                    }">
+                                    {{ page }}
+                                </div>
+                            </div>
+
+                            <button @click="changeUserPage(userCurrentPage + 1)"
+                                :disabled="userCurrentPage === userTotalPages"
+                                style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #00f3ff; padding: 4px 10px; border-radius: 4px; cursor: pointer; outline: none;"
+                                :style="{ opacity: userCurrentPage === userTotalPages ? 0.5 : 1, cursor: userCurrentPage === userTotalPages ? 'not-allowed' : 'pointer' }">
+                                &gt;
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
