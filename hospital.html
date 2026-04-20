@@ -15,10 +15,16 @@
     <div id="app">
         <div class="screen-shell">
             <header class="topbar-scifi">
-                <div class="topbar-center">
+                <div class="topbar-center" style="pointer-events: auto;">
                     <div class="center-bg"></div>
                     <h1>{{ selectedHospital.name }}</h1>
                     <p>{{ currentTime }}</p>
+
+                    <select v-model="selectedRange" class="time-select" style="right: -100px; top: 35px;">
+                        <option value="today">今日</option>
+                        <option value="week">本周</option>
+                        <option value="month">本月</option>
+                    </select>
                 </div>
             </header>
 
@@ -27,7 +33,7 @@
                     <section class="panel flex-1">
                         <div class="panel-header">
                             <div>
-                                <h3>近 7 天告警趋势分析</h3>
+                                <h3>告警趋势分析</h3>
                             </div>
                             <div style="display: flex; gap: 6px; margin-right: 15px;">
                                 <div v-for="lvl in ['P0', 'P1', 'P2', 'P3']" :key="lvl" @click="toggleAlertLevel(lvl)"
@@ -48,7 +54,7 @@
                     <section class="panel flex-1">
                         <div class="panel-header">
                             <div>
-                                <h3>近 7 天 MTTA/MTTR </h3>
+                                <h3>MTTA/MTTR</h3>
                             </div>
                             <div style="display: flex; gap: 6px; margin-right: 15px;">
                                 <div v-for="lvl in ['全部', 'P0', 'P1', 'P2', 'P3']" :key="lvl"
@@ -69,7 +75,7 @@
                     <section class="panel flex-1">
                         <div class="panel-header">
                             <div>
-                                <h3>近 7 天闭环率与超时率</h3>
+                                <h3>闭环率与超时率</h3>
                             </div>
                         </div>
                         <div id="hospital-closure-timeout-chart" class="chart"></div>
@@ -152,141 +158,126 @@
                 </div>
             </section>
 
-            <!-- 弹出层：服务告警详情与历史 -->
+            <!-- 弹出层：节点告警列表 -->
             <div v-show="systemAlertModalVisible" class="modal-overlay" style="display:flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(7, 19, 32, 0.85); justify-content: center; align-items: center; z-index: 1000;"
                 @click.self="systemAlertModalVisible = false">
-                <div class="modal-content" style="width: 800px; height: 560px; background: rgba(11, 28, 47, 0.95); border: 1px solid #16567e; border-radius: 8px; box-shadow: 0 0 30px rgba(0, 243, 255, 0.3); display: flex; flex-direction: column;">
+                <div class="modal-content" style="width: 920px; height: 620px; background: rgba(11, 28, 47, 0.95); border: 1px solid #16567e; border-radius: 8px; box-shadow: 0 0 30px rgba(0, 243, 255, 0.3); display: flex; flex-direction: column;">
 
-                    <!-- 头部与 Tabs -->
                     <div class="modal-header" style="height: 50px; background: rgba(0, 243, 255, 0.1); border-bottom: 1px solid #16567e; display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
-                        
-                        <div style="display: flex; gap: 10px; flex: 1; justify-content: flex-start;">
-                            <div @click="alertModalActiveTab = 'active'; alertActivePage = 1" :style="{ padding: '5px 15px', color: '#fff', fontSize: '14px', cursor: 'pointer', borderBottom: alertModalActiveTab === 'active' ? '2px solid #00f3ff' : 'none' }">
-                                活动告警
-                            </div>
-                            <div @click="alertModalActiveTab = 'history'; alertHistoryPage = 1" :style="{ padding: '5px 15px', color: '#fff', fontSize: '14px', cursor: 'pointer', borderBottom: alertModalActiveTab === 'history' ? '2px solid #00f3ff' : 'none' }">
-                                历史告警
-                            </div>
+                        <div style="display: flex; gap: 16px; flex: 1; justify-content: flex-start; align-items: center; min-width: 0;">
+                            <div style="color: #ffffff; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ topologyAlertTitle }}</div>
+                            <div style="font-size: 12px; color: #86a6bc; white-space: nowrap;">按当前时间范围展示，发生时间倒序</div>
                         </div>
 
-                        <div style="flex: 1; text-align: right;">
+                        <div style="flex: 0 0 auto; text-align: right;">
                             <button @click="systemAlertModalVisible = false" style="background: none; border: none; color: #5e8baf; font-size: 24px; cursor: pointer;">×</button>
                         </div>
                     </div>
                     
-                    <!-- 主体内容 -->
                     <div class="modal-body" style="flex: 1; padding: 20px; display: flex; flex-direction: column; overflow: hidden;">
-
-                        <!-- 活动告警 Tab -->
-                        <div v-show="alertModalActiveTab === 'active'" style="display: flex; flex-direction: column; height: 100%;">
-                            <div style="flex: 1; overflow-y: auto;">
-                                <table style="width: 100%; border-collapse: collapse; color: #fff; font-size: 13px;">
-                                    <thead style="position: sticky; top: 0; z-index: 10;">
-                                        <tr style="background: rgba(22, 86, 126, 0.95);">
-                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 100px;">告警ID</th>
-                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 80px;">级别</th>
-                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e;">告警内容</th>
-                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 100px;">发生时间</th>
-                                        <th style="padding: 10px; text-align: center; border-bottom: 1px solid #16567e; width: 80px;">状态</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="alert in pagedActiveAlerts" :key="alert.id">
-                                        <td style="padding: 10px; border-bottom: 1px solid #16567e; color: #5e8baf;">#{{ alert.id }}</td>
-                                        <td style="padding: 10px; border-bottom: 1px solid #16567e;">
-                                            <span :style="{ color: alert.level === 'P1' ? '#ff6a6a' : '#ffca63' }">{{ alert.level }}</span>
-                                        </td>
-                                        <td style="padding: 10px; border-bottom: 1px solid #16567e;">{{ alert.content }}</td>
-                                        <td style="padding: 10px; border-bottom: 1px solid #16567e; color: #5e8baf;">{{ alert.time }}</td>
-                                        <td style="padding: 10px; border-bottom: 1px solid #16567e; text-align: center;"><span style="color: #ffca63;">{{ alert.status }}</span></td>
-                                    </tr>
-                                </tbody>
-                            </table>                            </div>                            <!-- 分页 -->
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; color: #5e8baf; font-size: 13px;">
-                                <div>
-                                    共 <span style="color: #00f3ff; font-weight: bold;">{{ activeAlertsData.length }}</span> 条
+                        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;">
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                <span style="font-size: 12px; color: #86a6bc;">告警状态</span>
+                                <div v-for="status in ['未领取', '处理中', '已关闭']" :key="status"
+                                    @click="toggleMultiFilter('alertStatusFilter', status)"
+                                    :style="{
+                                        cursor: 'pointer',
+                                        padding: '4px 10px',
+                                        fontSize: '12px',
+                                        borderRadius: '4px',
+                                        backgroundColor: alertStatusFilter.includes(status) ? 'rgba(0, 243, 255, 0.18)' : 'rgba(0, 243, 255, 0.06)',
+                                        border: '1px solid ' + (alertStatusFilter.includes(status) ? '#00f3ff' : 'rgba(0, 243, 255, 0.2)'),
+                                        color: alertStatusFilter.includes(status) ? '#ffffff' : '#86a6bc',
+                                        userSelect: 'none',
+                                        transition: 'all 0.2s'
+                                    }">
+                                    {{ status }}
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <button @click="alertActivePage--" :disabled="alertActivePage === 1"
-                                        style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #00f3ff; padding: 4px 10px; border-radius: 4px; cursor: pointer; outline: none;"
-                                        :style="{ opacity: alertActivePage === 1 ? 0.5 : 1, cursor: alertActivePage === 1 ? 'not-allowed' : 'pointer' }">
-                                        &lt;
-                                    </button>
-                                    
-                                    <div style="display: flex; gap: 8px;">
-                                        <div v-for="page in activeAlertsTotalPages" :key="page" @click="alertActivePage = page"
-                                            style="width: 28px; height: 28px; display: flex; justify-content: center; align-items: center; border-radius: 4px; cursor: pointer; transition: all 0.2s; font-size: 14px;"
-                                            :style="{
-                                                background: alertActivePage === page ? 'rgba(0, 243, 255, 0.3)' : 'rgba(0, 243, 255, 0.05)',
-                                                border: '1px solid ' + (alertActivePage === page ? '#00f3ff' : 'rgba(0, 243, 255, 0.2)'),
-                                                color: alertActivePage === page ? '#fff' : '#86a6bc'
-                                            }">
-                                            {{ page }}
-                                        </div>
-                                    </div>
-
-                                    <button @click="alertActivePage++" :disabled="alertActivePage === activeAlertsTotalPages"
-                                        style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #00f3ff; padding: 4px 10px; border-radius: 4px; cursor: pointer; outline: none;"
-                                        :style="{ opacity: alertActivePage === activeAlertsTotalPages ? 0.5 : 1, cursor: alertActivePage === activeAlertsTotalPages ? 'not-allowed' : 'pointer' }">
-                                        &gt;
-                                    </button>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                <span style="font-size: 12px; color: #86a6bc;">告警级别</span>
+                                <div v-for="level in alertLevelOptions" :key="level"
+                                    @click="toggleMultiFilter('alertLevelFilter', level)"
+                                    :style="{
+                                        cursor: 'pointer',
+                                        padding: '4px 10px',
+                                        fontSize: '12px',
+                                        borderRadius: '4px',
+                                        backgroundColor: alertLevelFilter.includes(level) ? 'rgba(0, 243, 255, 0.18)' : 'rgba(0, 243, 255, 0.06)',
+                                        border: '1px solid ' + (alertLevelFilter.includes(level) ? '#00f3ff' : 'rgba(0, 243, 255, 0.2)'),
+                                        color: alertLevelFilter.includes(level) ? '#ffffff' : '#86a6bc',
+                                        userSelect: 'none',
+                                        transition: 'all 0.2s'
+                                    }">
+                                    {{ level }}
                                 </div>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                <span style="font-size: 12px; color: #86a6bc;">发生时间</span>
+                                <input v-model="alertStartTimeFilter" type="datetime-local"
+                                    style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #86a6bc; padding: 4px 10px; border-radius: 4px; outline: none; font-size: 12px; cursor: pointer;" />
+                                <span style="font-size: 12px; color: #86a6bc;">至</span>
+                                <input v-model="alertEndTimeFilter" type="datetime-local"
+                                    style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #86a6bc; padding: 4px 10px; border-radius: 4px; outline: none; font-size: 12px; cursor: pointer;" />
                             </div>
                         </div>
 
-                        <!-- 历史告警 Tab -->
-                        <div v-show="alertModalActiveTab === 'history'" style="display: flex; flex-direction: column; height: 100%;">
-                            <div style="flex: 1; overflow-y: auto;">
+                        <div style="display: flex; flex-direction: column; height: 100%; min-height: 0;">
+                            <div style="flex: 1; overflow-y: auto; min-height: 0;">
                                 <table style="width: 100%; border-collapse: collapse; color: #fff; font-size: 13px;">
                                     <thead style="position: sticky; top: 0; z-index: 10;">
                                         <tr style="background: rgba(22, 86, 126, 0.95);">
-                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 100px;">告警ID</th>
-                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 80px;">级别</th>
-                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e;">告警内容</th>
-                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 100px;">恢复时间</th>
-                                        <th style="padding: 10px; text-align: center; border-bottom: 1px solid #16567e; width: 80px;">状态</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="alert in pagedHistoryAlerts" :key="alert.id">
-                                        <td style="padding: 10px; border-bottom: 1px solid #16567e; color: #5e8baf;">#{{ alert.id }}</td>
-                                        <td style="padding: 10px; border-bottom: 1px solid #16567e;">
-                                            <span :style="{ color: alert.level === 'P1' ? '#ff6a6a' : (alert.level === 'P2' ? '#ffca63' : '#3ed6c6') }">{{ alert.level }}</span>
-                                        </td>
-                                        <td style="padding: 10px; border-bottom: 1px solid #16567e;">{{ alert.content }}</td>
-                                        <td style="padding: 10px; border-bottom: 1px solid #16567e; color: #5e8baf;">{{ alert.time }}</td>
-                                        <td style="padding: 10px; border-bottom: 1px solid #16567e; text-align: center;"><span style="color: #3ed6c6;">{{ alert.status }}</span></td>
-                                    </tr>
-                                </tbody>
-                            </table>                            </div>                            <!-- 分页 -->
+                                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 110px;">告警ID</th>
+                                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 70px;">级别</th>
+                                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e;">告警内容</th>
+                                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 140px;">告警发生时间</th>
+                                            <th style="padding: 10px; text-align: center; border-bottom: 1px solid #16567e; width: 90px;">状态</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="alert in pagedSystemAlerts" :key="alert.id">
+                                            <td style="padding: 10px; border-bottom: 1px solid #16567e; color: #5e8baf;">#{{ alert.id }}</td>
+                                            <td style="padding: 10px; border-bottom: 1px solid #16567e;">
+                                                <span :style="{ color: alert.level === 'P0' ? '#ff3b3b' : (alert.level === 'P1' ? '#ff8a5c' : (alert.level === 'P2' ? '#ffca63' : '#3ed6c6')) }">{{ alert.level }}</span>
+                                            </td>
+                                            <td style="padding: 10px; border-bottom: 1px solid #16567e; line-height: 1.6;">{{ alert.content }}</td>
+                                            <td style="padding: 10px; border-bottom: 1px solid #16567e; color: #5e8baf;">{{ alert.time }}</td>
+                                            <td style="padding: 10px; border-bottom: 1px solid #16567e; text-align: center;">
+                                                <span :style="{ color: alert.status === '未领取' ? '#ff6a6a' : (alert.status === '处理中' ? '#ffca63' : '#3ed6c6') }">{{ alert.status }}</span>
+                                            </td>
+                                        </tr>
+                                        <tr v-if="pagedSystemAlerts.length === 0">
+                                            <td colspan="5" style="padding: 24px 10px; text-align: center; color: #86a6bc; border-bottom: 1px solid #16567e;">当前筛选条件下暂无告警</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; color: #5e8baf; font-size: 13px;">
                                 <div>
-                                    共 <span style="color: #00f3ff; font-weight: bold;">{{ historyAlertsData.length }}</span> 条
+                                    共 <span style="color: #00f3ff; font-weight: bold;">{{ filteredSystemAlerts.length }}</span> 条
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                    <button @click="alertHistoryPage--" :disabled="alertHistoryPage === 1"
+                                    <button @click="alertCurrentPage--" :disabled="alertCurrentPage === 1"
                                         style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #00f3ff; padding: 4px 10px; border-radius: 4px; cursor: pointer; outline: none;"
-                                        :style="{ opacity: alertHistoryPage === 1 ? 0.5 : 1, cursor: alertHistoryPage === 1 ? 'not-allowed' : 'pointer' }">
+                                        :style="{ opacity: alertCurrentPage === 1 ? 0.5 : 1, cursor: alertCurrentPage === 1 ? 'not-allowed' : 'pointer' }">
                                         &lt;
                                     </button>
-                                    
+
                                     <div style="display: flex; gap: 8px;">
-                                        <!-- 当分页过多时，vue 中直接渲染全部容易溢出（但根据原先例子，我们就先照搬分页），或者需要实现部分展示 -->
-                                        <!-- 这里沿用二级运维的分页样式即可 -->
-                                        <div v-for="page in historyAlertsTotalPages" :key="page" @click="alertHistoryPage = page"
+                                        <div v-for="page in systemAlertsTotalPages" :key="page" @click="alertCurrentPage = page"
                                             style="width: 28px; height: 28px; display: flex; justify-content: center; align-items: center; border-radius: 4px; cursor: pointer; transition: all 0.2s; font-size: 14px;"
                                             :style="{
-                                                background: alertHistoryPage === page ? 'rgba(0, 243, 255, 0.3)' : 'rgba(0, 243, 255, 0.05)',
-                                                border: '1px solid ' + (alertHistoryPage === page ? '#00f3ff' : 'rgba(0, 243, 255, 0.2)'),
-                                                color: alertHistoryPage === page ? '#fff' : '#86a6bc'
+                                                background: alertCurrentPage === page ? 'rgba(0, 243, 255, 0.3)' : 'rgba(0, 243, 255, 0.05)',
+                                                border: '1px solid ' + (alertCurrentPage === page ? '#00f3ff' : 'rgba(0, 243, 255, 0.2)'),
+                                                color: alertCurrentPage === page ? '#fff' : '#86a6bc'
                                             }">
                                             {{ page }}
                                         </div>
                                     </div>
 
-                                    <button @click="alertHistoryPage++" :disabled="alertHistoryPage === historyAlertsTotalPages"
+                                    <button @click="alertCurrentPage++" :disabled="alertCurrentPage === systemAlertsTotalPages"
                                         style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #00f3ff; padding: 4px 10px; border-radius: 4px; cursor: pointer; outline: none;"
-                                        :style="{ opacity: alertHistoryPage === historyAlertsTotalPages ? 0.5 : 1, cursor: alertHistoryPage === historyAlertsTotalPages ? 'not-allowed' : 'pointer' }">
+                                        :style="{ opacity: alertCurrentPage === systemAlertsTotalPages ? 0.5 : 1, cursor: alertCurrentPage === systemAlertsTotalPages ? 'not-allowed' : 'pointer' }">
                                         &gt;
                                     </button>
                                 </div>

@@ -28,6 +28,13 @@ createApp({
             userPageSize: 8,
             activeAppTab: 'core',
             systemAlertModalVisible: false,
+            selectedTopologyNode: null,
+            systemAlerts: [],
+            alertStatusFilter: [],
+            alertLevelFilter: [],
+            alertStartTimeFilter: '',
+            alertEndTimeFilter: '',
+            alertCurrentPage: 1,
             alertModalActiveTab: 'active',
             alertActivePage: 1,
             alertHistoryPage: 1,
@@ -281,36 +288,32 @@ createApp({
         userTotalPages() {
             return Math.ceil(this.activeUserList.length / this.userPageSize) || 1;
         },
-        // --- Alert Modal Computed ---
-        activeAlertsData() {
-            const arr = [];
-            for (let i = 0; i < 35; i++) {
-                arr.push({ id: 1000 + i, level: i % 4 === 0 ? 'P1' : 'P2', content: '系统组件服务降级或网关超时报错', time: '10:0' + (i % 9), status: '处理中' });
-            }
-            return arr;
+        topologyAlertTitle() {
+            const nodeName = this.selectedTopologyNode && this.selectedTopologyNode.name ? this.selectedTopologyNode.name : '当前节点';
+            const rangeLabel = this.selectedRange === 'month' ? '本月' : (this.selectedRange === 'week' ? '本周' : '今日');
+            return `${nodeName} 告警列表`;
         },
-        historyAlertsData() {
-            const arr = [];
-            for (let i = 0; i < 120; i++) {
-                arr.push({ id: 2000 + i, level: i % 5 === 0 ? 'P2' : 'P3', content: 'CPU内存使用率短暂峰值达到90%', time: '昨天', status: '已恢复' });
-            }
-            return arr;
+        alertLevelOptions() {
+            return ['P0', 'P1', 'P2', 'P3'];
         },
-        pagedActiveAlerts() {
-            const start = (this.alertActivePage - 1) * this.alertPageSize;
-            return this.activeAlertsData.slice(start, start + this.alertPageSize);
+        filteredSystemAlerts() {
+            return this.systemAlerts.filter(alert => {
+                const statusMatched = this.alertStatusFilter.length === 0 || this.alertStatusFilter.includes(alert.status);
+                const levelMatched = this.alertLevelFilter.length === 0 || this.alertLevelFilter.includes(alert.level);
+                const startFilter = this.alertStartTimeFilter ? new Date(this.alertStartTimeFilter).getTime() : null;
+                const endFilter = this.alertEndTimeFilter ? new Date(this.alertEndTimeFilter).getTime() : null;
+                const timeMatched = (startFilter === null || alert.occurredAt >= startFilter)
+                    && (endFilter === null || alert.occurredAt <= endFilter);
+                return statusMatched && levelMatched && timeMatched;
+            });
         },
-        activeAlertsTotalPages() {
-            return Math.ceil(this.activeAlertsData.length / this.alertPageSize) || 1;
+        pagedSystemAlerts() {
+            const start = (this.alertCurrentPage - 1) * this.alertPageSize;
+            return this.filteredSystemAlerts.slice(start, start + this.alertPageSize);
         },
-        pagedHistoryAlerts() {
-            const start = (this.alertHistoryPage - 1) * this.alertPageSize;
-            return this.historyAlertsData.slice(start, start + this.alertPageSize);
+        systemAlertsTotalPages() {
+            return Math.ceil(this.filteredSystemAlerts.length / this.alertPageSize) || 1;
         },
-        historyAlertsTotalPages() {
-            return Math.ceil(this.historyAlertsData.length / this.alertPageSize) || 1;
-        },
-        // -------------------------
         selectedHospital() {
             return this.hospitals.find((item) => item.id === this.selectedHospitalId) || this.hospitals[0];
         },
@@ -411,6 +414,10 @@ createApp({
                 mttrValue: Math.max(10, Math.round(hospital.mttrValue + offset * 2 + (Math.random() * 10 - 5)))
             }));
 
+            if (this.systemAlertModalVisible && this.selectedTopologyNode) {
+                this.openSystemAlertModal(this.selectedTopologyNode);
+            }
+
             this.$nextTick(() => this.renderCharts());
         },
         selectedAlertLevels: {
@@ -433,6 +440,24 @@ createApp({
             if (this.currentView !== 'hq') {
                 this.$nextTick(() => this.renderHospitalTicketChart());
             }
+        },
+        alertStatusFilter: {
+            deep: true,
+            handler() {
+                this.alertCurrentPage = 1;
+            }
+        },
+        alertLevelFilter: {
+            deep: true,
+            handler() {
+                this.alertCurrentPage = 1;
+            }
+        },
+        alertStartTimeFilter() {
+            this.alertCurrentPage = 1;
+        },
+        alertEndTimeFilter() {
+            this.alertCurrentPage = 1;
         },
         modalAlertLevels: {
             deep: true,
@@ -504,6 +529,157 @@ createApp({
         });
     },
     methods: {
+        getHospitalRangeConfig() {
+            const now = new Date();
+            if (this.selectedRange === 'today') {
+                const labels = [];
+                for (let hour = 0; hour < 24; hour++) {
+                    labels.push(`${hour.toString().padStart(2, '0')}:00`);
+                }
+                return {
+                    key: 'today',
+                    label: '今日',
+                    labels,
+                    count: 24
+                };
+            }
+
+            if (this.selectedRange === 'month') {
+                const labels = [];
+                for (let i = 29; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    labels.push(`${d.getMonth() + 1}-${d.getDate()}`);
+                }
+                return { key: 'month', label: '本月', labels, count: 30 };
+            }
+
+            const labels = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                labels.push(`${d.getMonth() + 1}-${d.getDate()}`);
+            }
+            return { key: 'week', label: '本周', labels, count: 7 };
+        },
+        expandTrendSeries(baseSeries, count, options = {}) {
+            const source = Array.isArray(baseSeries) && baseSeries.length ? baseSeries : [0];
+            const varianceRatio = options.varianceRatio ?? 0.08;
+            const decimals = options.decimals ?? 0;
+            const min = options.min ?? 0;
+            const formatter = decimals > 0
+                ? (value) => Number(value.toFixed(decimals))
+                : (value) => Math.round(value);
+
+            if (count === 1) {
+                return [formatter(Math.max(min, source[source.length - 1]))];
+            }
+
+            return Array.from({ length: count }, (_, index) => {
+                const sourceIndex = Math.min(source.length - 1, Math.floor(index * source.length / count));
+                const baseValue = Number(source[sourceIndex]) || 0;
+                const wave = Math.sin((index + 1) * 1.37) * Math.max(1, baseValue * varianceRatio);
+                return formatter(Math.max(min, baseValue + wave));
+            });
+        },
+        getAlertRangeInfo() {
+            const end = new Date();
+            const start = new Date(end);
+            if (this.selectedRange === 'month') start.setDate(end.getDate() - 29);
+            else if (this.selectedRange === 'week') start.setDate(end.getDate() - 6);
+            else start.setHours(0, 0, 0, 0);
+            return { start, end };
+        },
+        formatAlertDateTime(date) {
+            const year = date.getFullYear();
+            const month = `${date.getMonth() + 1}`.padStart(2, '0');
+            const day = `${date.getDate()}`.padStart(2, '0');
+            const hour = `${date.getHours()}`.padStart(2, '0');
+            const minute = `${date.getMinutes()}`.padStart(2, '0');
+            const second = `${date.getSeconds()}`.padStart(2, '0');
+            return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+        },
+        formatAlertDateTimeInput(date) {
+            const year = date.getFullYear();
+            const month = `${date.getMonth() + 1}`.padStart(2, '0');
+            const day = `${date.getDate()}`.padStart(2, '0');
+            const hour = `${date.getHours()}`.padStart(2, '0');
+            const minute = `${date.getMinutes()}`.padStart(2, '0');
+            return `${year}-${month}-${day}T${hour}:${minute}`;
+        },
+        buildTopologyAlertContent(node, index, status) {
+            const templatesByLayer = {
+                app: [
+                    '应用接口错误率突增，需排查接口服务与依赖链路',
+                    '应用响应时间抖动明显，可能存在线程池或下游调用阻塞',
+                    '应用实例健康检查失败，建议核查发布版本与容器状态'
+                ],
+                db: [
+                    '数据库连接占用持续升高，需检查慢查询与连接池设置',
+                    '中间件消息消费堆积，建议核对消费组和实例负载',
+                    '数据库实例访问波动，建议检查主机资源与存储时延'
+                ],
+                vm: [
+                    '虚机 CPU 负载异常升高，建议排查进程与调度任务',
+                    '虚机内存使用率持续攀升，建议核查缓存与驻留进程',
+                    '虚机目录使用率接近阈值，建议清理日志或扩容目录空间'
+                ]
+            };
+            const layerTemplates = templatesByLayer[node.layerType] || templatesByLayer.app;
+            const template = layerTemplates[index % layerTemplates.length];
+            return `${node.name} ${template}${status === '已关闭' ? '，当前已完成处置。' : ''}`;
+        },
+        toggleMultiFilter(listName, value) {
+            const target = this[listName];
+            if (!Array.isArray(target)) return;
+            const index = target.indexOf(value);
+            if (index > -1) {
+                target.splice(index, 1);
+            } else {
+                target.push(value);
+            }
+        },
+        openSystemAlertModal(node) {
+            if (!node || !node.name) return;
+
+            const { start, end } = this.getAlertRangeInfo();
+            const statusPool = ['未领取', '处理中', '已关闭'];
+            const levelPool = node.value < 85 ? ['P0', 'P1', 'P1', 'P2', 'P2', 'P3'] : ['P1', 'P2', 'P2', 'P3', 'P3'];
+            const baseCount = this.selectedRange === 'month' ? 96 : (this.selectedRange === 'week' ? 42 : 18);
+            const count = baseCount + (node.value < 85 ? 12 : 0) + (node.layerType === 'app' ? 6 : 0);
+            const startTime = start.getTime();
+            const endTime = end.getTime();
+            const timeSpan = Math.max(1, endTime - startTime);
+
+            const alerts = Array.from({ length: count }, (_, index) => {
+                const ratio = count === 1 ? 1 : index / (count - 1);
+                const timestamp = new Date(endTime - Math.floor(ratio * timeSpan));
+                const status = statusPool[index % statusPool.length];
+                const level = levelPool[index % levelPool.length];
+                return {
+                    id: `${timestamp.getTime()}`.slice(-8) + index,
+                    level,
+                    content: this.buildTopologyAlertContent(node, index, status),
+                    time: this.formatAlertDateTime(timestamp),
+                    occurredAt: timestamp.getTime(),
+                    status
+                };
+            }).sort((first, second) => second.occurredAt - first.occurredAt);
+
+            this.selectedTopologyNode = {
+                name: node.name,
+                category: node.category,
+                layerType: node.layerType,
+                value: node.value
+            };
+            this.systemAlerts = alerts;
+            this.alertStatusFilter = [];
+            this.alertLevelFilter = [];
+            this.alertStartTimeFilter = this.formatAlertDateTimeInput(start);
+            this.alertEndTimeFilter = this.formatAlertDateTimeInput(end);
+            this.alertCurrentPage = 1;
+            this.systemAlertModalVisible = true;
+        },
         toggleAlertLevel(level) {
             const idx = this.selectedAlertLevels.indexOf(level);
             if (idx > -1) {
@@ -1232,14 +1408,7 @@ createApp({
         renderHospitalAlertChart() {
             const chart = this.ensureChart('hospitalAlert', 'hospital-alert-chart');
             if (!chart) return;
-            const rangeLabel = this.selectedRange === '7d' ? '近 7 天' : this.selectedRange === 'custom' ? '自定义周期' : '近 30 天口径展示近 7 日走势';
-
-            const last7Days = [];
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                last7Days.push(`${d.getMonth() + 1}-${d.getDate()}`);
-            }
+            const rangeConfig = this.getHospitalRangeConfig();
 
             // 根据选中的告警级别进行数据折算 (模拟筛选变化)
             let multiplier = 0;
@@ -1251,14 +1420,18 @@ createApp({
             // 如果全部都没选，默认展示0
             if (multiplier === 0) multiplier = 0;
 
-            const filteredData = (this.selectedHospital.alertTrend || []).map(val => Math.round(val * multiplier));
+            const filteredData = this.expandTrendSeries(
+                (this.selectedHospital.alertTrend || []).map(val => val * multiplier),
+                rangeConfig.count,
+                { varianceRatio: 0.12, min: 0 }
+            );
 
             chart.setOption({
                 tooltip: { trigger: 'axis' },
                 grid: { left: 45, right: 20, top: 35, bottom: 30 },
                 xAxis: {
                     type: 'category',
-                    data: last7Days,
+                    data: rangeConfig.labels,
                     axisLabel: { color: '#86a6bc' },
                     axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
                 },
@@ -1268,7 +1441,7 @@ createApp({
                     splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
                 },
                 series: [{
-                    name: rangeLabel,
+                    name: `${rangeConfig.label}告警趋势`,
                     type: 'line',
                     smooth: true,
                     symbolSize: 9,
@@ -1287,13 +1460,7 @@ createApp({
         renderHospitalResponseChart() {
             const chart = this.ensureChart('hospitalResponse', 'hospital-response-chart');
             if (!chart) return;
-
-            const last7Days = [];
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                last7Days.push(`${d.getMonth() + 1}-${d.getDate()}`);
-            }
+            const rangeConfig = this.getHospitalRangeConfig();
 
             // 根据选择的级别调整模拟数据和SLA基线
             let multiplier = 1;
@@ -1306,8 +1473,12 @@ createApp({
 
             // 模拟 MTTR (恢复时长) 数据，通常比 MTTA (响应时长) 长
             const baseMtta = this.selectedHospital.responseTrend || [10, 12, 11, 15, 10, 9, 8];
-            const mttaData = baseMtta.map(val => Math.max(1, Math.round(val * multiplier)));
-            const mttrData = mttaData.map(val => val * 3 + Math.floor(Math.random() * 10));
+            const mttaData = this.expandTrendSeries(
+                baseMtta.map(val => Math.max(1, val * multiplier)),
+                rangeConfig.count,
+                { varianceRatio: 0.1, min: 1 }
+            );
+            const mttrData = mttaData.map((val, index) => Math.max(10, Math.round(val * 3 + Math.sin((index + 1) * 1.1) * 6 + 4)));
 
             const legendData = ['平均响应时长 (MTTA)', '平均恢复时长 (MTTR)'];
 
@@ -1338,14 +1509,14 @@ createApp({
                 seriesConfig.push({
                     name: '响应 SLA 基线',
                     type: 'line',
-                    data: Array(last7Days.length).fill(slaBaselineMtta),
+                    data: Array(rangeConfig.count).fill(slaBaselineMtta),
                     symbol: 'none',
                     lineStyle: { color: 'rgba(54, 216, 198, 0.4)', width: 2, type: 'dashed' }
                 });
                 seriesConfig.push({
                     name: '恢复 SLA 基线',
                     type: 'line',
-                    data: Array(last7Days.length).fill(slaBaselineMttr),
+                    data: Array(rangeConfig.count).fill(slaBaselineMttr),
                     symbol: 'none',
                     lineStyle: { color: 'rgba(160, 63, 232, 0.4)', width: 2, type: 'dashed' } // 与恢复时长同色系，降低可见度
                 });
@@ -1361,7 +1532,7 @@ createApp({
                 grid: { left: 45, right: 20, top: 35, bottom: 30 },
                 xAxis: {
                     type: 'category',
-                    data: last7Days,
+                    data: rangeConfig.labels,
                     axisLabel: { color: '#86a6bc' },
                     axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
                 },
@@ -1376,17 +1547,11 @@ createApp({
         renderHospitalClosureTimeoutChart() {
             const chart = this.ensureChart('hospitalClosureTimeout', 'hospital-closure-timeout-chart');
             if (!chart) return;
-
-            const last7Days = [];
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                last7Days.push(`${d.getMonth() + 1}-${d.getDate()}`);
-            }
+            const rangeConfig = this.getHospitalRangeConfig();
 
             // Mock Data for 7 days
-            const closureRates = [94, 95, 96.5, 94.8, 97.2, 96.8, 98.1];
-            const timeoutRates = [5.2, 4.8, 4.1, 5.1, 3.8, 4.2, 3.4];
+            const closureRates = this.expandTrendSeries([94, 95, 96.5, 94.8, 97.2, 96.8, 98.1], rangeConfig.count, { varianceRatio: 0.01, min: 90, decimals: 1 });
+            const timeoutRates = this.expandTrendSeries([5.2, 4.8, 4.1, 5.1, 3.8, 4.2, 3.4], rangeConfig.count, { varianceRatio: 0.08, min: 0, decimals: 1 });
 
             chart.setOption({
                 tooltip: {
@@ -1405,7 +1570,7 @@ createApp({
                 grid: { left: 45, right: 45, top: 35, bottom: 30 },
                 xAxis: {
                     type: 'category',
-                    data: last7Days,
+                    data: rangeConfig.labels,
                     axisLabel: { color: '#86a6bc' },
                     axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
                 },
@@ -1518,12 +1683,12 @@ createApp({
         renderHospitalResourceChart() {
             const chart = this.ensureChart('hospitalResource', 'hospital-resource-chart');
             if (!chart) return;
-
+            const rangeMultiplier = this.selectedRange === 'month' ? 1.12 : (this.selectedRange === 'week' ? 1.05 : 1);
             const storageData = {
                 categories: ['S3', 'NAS'],
                 total: [320, 180],
-                used: [218, 124],
-                remaining: [102, 56]
+                used: [Math.round(218 * rangeMultiplier), Math.round(124 * rangeMultiplier)],
+                remaining: [Math.round(320 - 218 * rangeMultiplier), Math.round(180 - 124 * rangeMultiplier)]
             };
 
             chart.setOption({
@@ -1626,7 +1791,7 @@ createApp({
             chart.off('dblclick');
             chart.on('dblclick', (params) => {
                 if (params.data && params.data.name !== '中心系统' && params.seriesName !== 'labels') {
-                    this.systemAlertModalVisible = true;
+                    this.openSystemAlertModal(params.data);
                 }
             });
 
