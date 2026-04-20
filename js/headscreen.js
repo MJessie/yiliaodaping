@@ -126,10 +126,36 @@ createApp({
             // 按照图片的精确节点数生成数据
             const buildLayerMetric = (layerType, isError, category) => {
                 if (layerType === 'app') {
+                    const podTotal = Math.floor(6 + Math.random() * 5);
+                    const podAlive = isError
+                        ? Math.max(1, podTotal - (1 + Math.floor(Math.random() * Math.min(3, podTotal - 1))))
+                        : podTotal;
                     return {
-                        metricName: '接口成功率',
-                        metricValue: isError ? Number((96 + Math.random() * 2).toFixed(2)) : Number((99.2 + Math.random() * 0.79).toFixed(2)),
-                        metricUnit: '%'
+                        metricName: '错误率',
+                        metricValue: isError ? Number((1.2 + Math.random() * 2.8).toFixed(2)) : Number((0.01 + Math.random() * 0.18).toFixed(2)),
+                        metricUnit: '%',
+                        appMetrics: [
+                            {
+                                label: 'POD存活',
+                                value: `${podAlive}|${podTotal}`,
+                                unit: ''
+                            },
+                            {
+                                label: '错误率',
+                                value: isError ? Number((1.2 + Math.random() * 2.8).toFixed(2)) : Number((0.01 + Math.random() * 0.18).toFixed(2)),
+                                unit: '%'
+                            },
+                            {
+                                label: 'P50响应',
+                                value: isError ? Math.floor(280 + Math.random() * 260) : Math.floor(35 + Math.random() * 90),
+                                unit: 'ms'
+                            },
+                            {
+                                label: '吞吐率',
+                                value: isError ? Number((220 + Math.random() * 180).toFixed(1)) : Number((520 + Math.random() * 380).toFixed(1)),
+                                unit: 'req/s'
+                            }
+                        ]
                     };
                 }
 
@@ -149,17 +175,37 @@ createApp({
                     };
                 }
 
+                const cpuLoad = isError ? Number((7.2 + Math.random() * 2.3).toFixed(2)) : Number((1.1 + Math.random() * 3.8).toFixed(2));
+                const memoryUsage = isError ? Number((82 + Math.random() * 12).toFixed(1)) : Number((32 + Math.random() * 26).toFixed(1));
+                const diskUsage = isError ? Number((84 + Math.random() * 10).toFixed(1)) : Number((36 + Math.random() * 28).toFixed(1));
                 return {
-                    metricName: 'CPU使用率',
-                    metricValue: isError ? Number((88 + Math.random() * 8).toFixed(1)) : Number((26 + Math.random() * 32).toFixed(1)),
-                    metricUnit: '%'
+                    metricName: 'CPU负载',
+                    metricValue: cpuLoad,
+                    metricUnit: '',
+                    vmMetrics: [
+                        {
+                            label: 'CPU负载',
+                            value: cpuLoad,
+                            unit: ''
+                        },
+                        {
+                            label: '内存使用率',
+                            value: memoryUsage,
+                            unit: '%'
+                        },
+                        {
+                            label: '目录使用率',
+                            value: diskUsage,
+                            unit: '%'
+                        }
+                    ]
                 };
             };
 
             const topCategories = [
                 { cat: 'LIS', n: 11 }, { cat: 'PACS', n: 8 }, { cat: '专科', n: 8 }, { cat: '公卫', n: 7 },
                 { cat: '区域检验', n: 8 }, { cat: '医生', n: 8 }, { cat: '基础', n: 8 }, { cat: '急诊', n: 8 },
-                { cat: '技术', n: 8 }, { cat: '护士', n: 5 }, { cat: '集成', n: 1 }
+                { cat: '技术', n: 8 }, { cat: '护士', n: 5 }, { cat: '集成', n: 1 }, { cat: '外部接口', n: 10 }
             ];
             const errorNodes = ['LIS11', '公卫7', '区域检验1', '医生5'];
             const middlewareErrorNodes = ['RocketMQ实例2', 'Redis实例3'];
@@ -178,7 +224,9 @@ createApp({
                         layerType: 'app',
                         metricName: metric.metricName,
                         metricValue: metric.metricValue,
-                        metricUnit: metric.metricUnit
+                        metricUnit: metric.metricUnit,
+                        appMetrics: metric.appMetrics,
+                        symbol: obj.cat === '外部接口' ? 'circle' : undefined
                     });
                 }
             });
@@ -218,7 +266,8 @@ createApp({
                         layerType: 'vm',
                         metricName: vmMetric.metricName,
                         metricValue: vmMetric.metricValue,
-                        metricUnit: vmMetric.metricUnit
+                        metricUnit: vmMetric.metricUnit,
+                        vmMetrics: vmMetric.vmMetrics
                     });
                 }
             });
@@ -1470,38 +1519,101 @@ createApp({
             const chart = this.ensureChart('hospitalResource', 'hospital-resource-chart');
             if (!chart) return;
 
+            const storageData = {
+                categories: ['S3', 'NAS'],
+                total: [320, 180],
+                used: [218, 124],
+                remaining: [102, 56]
+            };
+
             chart.setOption({
-                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-                grid: { left: 65, right: 35, top: 15, bottom: 20 },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: function (params) {
+                        return params[0].name + '<br/>' + params.map(item => `${item.seriesName}: ${item.value} TB`).join('<br/>');
+                    }
+                },
+                legend: {
+                    data: ['总空间', '已用', '剩余'],
+                    top: 0,
+                    textStyle: { color: '#86a6bc' }
+                },
+                grid: { left: 45, right: 20, top: 35, bottom: 25 },
                 xAxis: {
-                    type: 'value',
-                    max: 100,
-                    axisLabel: { color: '#86a6bc', formatter: '{value}%' },
-                    splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
+                    type: 'category',
+                    data: storageData.categories,
+                    axisLabel: { color: '#86a6bc', fontSize: 12 },
+                    axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } },
+                    axisTick: { show: false }
                 },
                 yAxis: {
-                    type: 'category',
-                    data: ['存储使用', '内存分配', 'CPU 使用率'],
-                    axisLabel: { color: '#86a6bc' },
-                    axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } },
-                    inverse: true
+                    type: 'value',
+                    name: 'TB',
+                    nameTextStyle: { color: '#86a6bc', padding: [0, 0, 0, -5] },
+                    axisLabel: { color: '#86a6bc', formatter: '{value}' },
+                    splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
                 },
                 series: [
                     {
-                        name: '使用率',
+                        name: '总空间',
                         type: 'bar',
-                        barWidth: 15,
-                        data: [
-                            { value: 45, itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: '#36d8c6' }, { offset: 1, color: 'rgba(54, 216, 198, 0.1)' }]) } },
-                            { value: 82, itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: '#ffcc00' }, { offset: 1, color: 'rgba(255, 204, 0, 0.1)' }]) } },
-                            { value: 65, itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: '#00f3ff' }, { offset: 1, color: 'rgba(0, 243, 255, 0.1)' }]) } }
-                        ],
+                        barWidth: 16,
+                        itemStyle: {
+                            borderRadius: [4, 4, 0, 0],
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#56f0df' },
+                                { offset: 1, color: 'rgba(86, 240, 223, 0.18)' }
+                            ])
+                        },
                         label: {
                             show: true,
-                            position: 'right',
+                            position: 'top',
                             color: '#fff',
-                            formatter: '{c}%'
-                        }
+                            fontSize: 12,
+                            formatter: '{c} TB'
+                        },
+                        data: storageData.total
+                    },
+                    {
+                        name: '已用',
+                        type: 'bar',
+                        barWidth: 16,
+                        itemStyle: {
+                            borderRadius: [4, 4, 0, 0],
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#ffc95e' },
+                                { offset: 1, color: 'rgba(255, 201, 94, 0.16)' }
+                            ])
+                        },
+                        label: {
+                            show: true,
+                            position: 'top',
+                            color: '#fff',
+                            fontSize: 12,
+                            formatter: '{c} TB'
+                        },
+                        data: storageData.used
+                    },
+                    {
+                        name: '剩余',
+                        type: 'bar',
+                        barWidth: 16,
+                        itemStyle: {
+                            borderRadius: [4, 4, 0, 0],
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#54b8ff' },
+                                { offset: 1, color: 'rgba(84, 184, 255, 0.16)' }
+                            ])
+                        },
+                        label: {
+                            show: true,
+                            position: 'top',
+                            color: '#fff',
+                            fontSize: 12,
+                            formatter: '{c} TB'
+                        },
+                        data: storageData.remaining
                     }
                 ]
             });
@@ -1544,7 +1656,7 @@ createApp({
 
                 // 按照原图布局（3行4列+两排紧密的实例）
                 const catLayout = {};
-                const topCats = ['LIS', 'PACS', '专科', '公卫', '区域检验', '医生', '基础', '急诊', '技术', '护士', '集成'];
+                const topCats = ['LIS', 'PACS', '专科', '公卫', '区域检验', '医生', '基础', '急诊', '技术', '护士', '集成', '外部接口'];
                 const dbCats = ['Oracle DB', 'RocketMQ', 'Redis', 'Mysql DB', 'Milvus DB'];
                 const vmCats = ['Oracle VM', 'RocketMQ VM', 'Redis VM', 'Mysql VM', 'Milvus VM'];
                 const sharedGrid = {
@@ -1555,17 +1667,18 @@ createApp({
 
                 // 顶层11个模块布局处理：使用固定中心点，保证第三排不会因为列数不同而视觉错位
                 const appCenters = {
-                    'LIS': { centerX: sharedGrid.fourCols[0], baseY: 170 },
-                    'PACS': { centerX: sharedGrid.fourCols[1], baseY: 170 },
-                    '专科': { centerX: sharedGrid.fourCols[2], baseY: 170 },
-                    '公卫': { centerX: sharedGrid.fourCols[3], baseY: 170 },
-                    '区域检验': { centerX: sharedGrid.fourCols[0], baseY: 35 },
-                    '医生': { centerX: sharedGrid.fourCols[1], baseY: 35 },
-                    '基础': { centerX: sharedGrid.fourCols[2], baseY: 35 },
-                    '急诊': { centerX: sharedGrid.fourCols[3], baseY: 35 },
-                    '技术': { centerX: sharedGrid.threeCols[0], baseY: -100 },
-                    '护士': { centerX: sharedGrid.threeCols[1], baseY: -100 },
-                    '集成': { centerX: sharedGrid.threeCols[2], baseY: -100 }
+                    'LIS': { centerX: sharedGrid.fourCols[0], baseY: 182 },
+                    'PACS': { centerX: sharedGrid.fourCols[1], baseY: 182 },
+                    '专科': { centerX: sharedGrid.fourCols[2], baseY: 182 },
+                    '公卫': { centerX: sharedGrid.fourCols[3], baseY: 182 },
+                    '区域检验': { centerX: sharedGrid.fourCols[0], baseY: 47 },
+                    '医生': { centerX: sharedGrid.fourCols[1], baseY: 47 },
+                    '基础': { centerX: sharedGrid.fourCols[2], baseY: 47 },
+                    '急诊': { centerX: sharedGrid.fourCols[3], baseY: 47 },
+                    '技术': { centerX: sharedGrid.fourCols[0], baseY: -88 },
+                    '护士': { centerX: sharedGrid.fourCols[1], baseY: -88 },
+                    '集成': { centerX: sharedGrid.fourCols[2], baseY: -88 },
+                    '外部接口': { centerX: sharedGrid.fourCols[3], baseY: -88 }
                 };
                 topCats.forEach((cat) => {
                     catLayout[cat] = appCenters[cat];
@@ -1578,7 +1691,7 @@ createApp({
 
                 // 虚拟机与数据库一一对应对其，在数据库的更下方
                 vmCats.forEach((cat, index) => {
-                    catLayout[cat] = { centerX: sharedGrid.fiveCols[index], baseY: -390 };
+                    catLayout[cat] = { centerX: sharedGrid.fiveCols[index], baseY: -372 };
                 });
 
                 [
@@ -1695,7 +1808,7 @@ createApp({
                         // 横纵坐标偏移量计算 (左上角开始排，向下向右扩展)
                         const px = nodeStartX + sc * gapX;
                         const py = baseY - sr * gapY;
-                        const nodeSymbol = layerSymbols[layerType] || 'circle';
+                        const nodeSymbol = node.symbol || layerSymbols[layerType] || 'circle';
                         const nodeSymbolSize = isError
                             ? (layerType === 'app' ? 19 : 21)
                             : (layerType === 'app' ? 17 : (layerType === 'db' ? 19 : 18));
@@ -1718,6 +1831,8 @@ createApp({
                             metricName: node.metricName,
                             metricValue: node.metricValue,
                             metricUnit: node.metricUnit,
+                            appMetrics: node.appMetrics,
+                            vmMetrics: node.vmMetrics,
                             value: [px, py, node.value],
                             symbol: nodeSymbol,
                             itemStyle: {
@@ -1759,11 +1874,19 @@ createApp({
                     tooltip: {
                         formatter: function (params) {
                             if (params.seriesName === 'labels' || params.seriesName === 'zones' || params.seriesName === 'links' || params.seriesName === 'guides' || params.seriesName === 'guideLabels') return '';
-                            const layerName = params.data.layerType === 'app' ? '应用层' : (params.data.layerType === 'db' ? '数据库/中间件' : '虚拟机');
+                            if (params.data.layerType === 'app' && Array.isArray(params.data.appMetrics)) {
+                                const metrics = params.data.category === '外部接口'
+                                    ? params.data.appMetrics.filter(item => item.label === '错误率' || item.label === 'P50响应')
+                                    : params.data.appMetrics;
+                                return `${params.data.name}<br/>${metrics.map(item => `${item.label}: ${item.value}${item.unit}`).join('<br/>')}`;
+                            }
+                            if (params.data.layerType === 'vm' && Array.isArray(params.data.vmMetrics)) {
+                                return `${params.data.name}<br/>${params.data.vmMetrics.map(item => `${item.label}: ${item.value}${item.unit}`).join('<br/>')}`;
+                            }
                             const metricName = params.data.metricName || '健康度';
                             const metricValue = params.data.metricValue !== undefined ? params.data.metricValue : params.data.value[2];
                             const metricUnit = params.data.metricUnit || '';
-                            return `${layerName}<br/>${params.data.category} / ${params.data.name}<br/>${metricName}: ${metricValue}${metricUnit}<br/>状态分: ${params.data.value[2]}`;
+                            return `${params.data.name}<br/>${metricName}: ${metricValue}${metricUnit}`;
                         }
                     },
                     grid: { left: 40, right: 40, top: 40, bottom: 20 },
@@ -1894,7 +2017,7 @@ createApp({
             chart.setOption({
                 tooltip: {
                     formatter: function (params) {
-                        return params.data && params.data.name ? (params.data.name + (params.data.value && params.data.value[2] ? ('<br/>健康度: ' + params.data.value[2]) : '')) : '';
+                        return params.data && params.data.name ? params.data.name : '';
                     }
                 },
                 xAxis: { show: false, min: -150, max: 150 },
