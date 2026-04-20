@@ -165,8 +165,8 @@
             <!-- 弹出层：服务告警详情与历史 -->
             <div v-show="systemAlertModalVisible" class="modal-overlay" style="display:flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(7, 19, 32, 0.85); justify-content: center; align-items: center; z-index: 1000;"
                 @click.self="systemAlertModalVisible = false">
-                <div class="modal-content" style="width: 800px; max-height: 80vh; background: rgba(11, 28, 47, 0.95); border: 1px solid #16567e; border-radius: 8px; box-shadow: 0 0 30px rgba(0, 243, 255, 0.3); display: flex; flex-direction: column;">
-                    
+                <div class="modal-content" style="width: 800px; height: 560px; background: rgba(11, 28, 47, 0.95); border: 1px solid #16567e; border-radius: 8px; box-shadow: 0 0 30px rgba(0, 243, 255, 0.3); display: flex; flex-direction: column;">
+
                     <!-- 头部与 Tabs -->
                     <div class="modal-header" style="height: 50px; background: rgba(0, 243, 255, 0.1); border-bottom: 1px solid #16567e; display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
                         
@@ -185,13 +185,14 @@
                     </div>
                     
                     <!-- 主体内容 -->
-                    <div class="modal-body" style="flex: 1; padding: 20px; overflow-y: auto;">
-                        
+                    <div class="modal-body" style="flex: 1; padding: 20px; display: flex; flex-direction: column; overflow: hidden;">
+
                         <!-- 活动告警 Tab -->
-                        <div v-show="alertModalActiveTab === 'active'">
-                            <table style="width: 100%; border-collapse: collapse; color: #fff; font-size: 13px;">
-                                <thead>
-                                    <tr style="background: rgba(22, 86, 126, 0.5);">
+                        <div v-show="alertModalActiveTab === 'active'" style="display: flex; flex-direction: column; height: 100%;">
+                            <div style="flex: 1; overflow-y: auto;">
+                                <table style="width: 100%; border-collapse: collapse; color: #fff; font-size: 13px;">
+                                    <thead style="position: sticky; top: 0; z-index: 10;">
+                                        <tr style="background: rgba(22, 86, 126, 0.95);">
                                         <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 100px;">告警ID</th>
                                         <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 80px;">级别</th>
                                         <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e;">告警内容</th>
@@ -210,8 +211,7 @@
                                         <td style="padding: 10px; border-bottom: 1px solid #16567e; text-align: center;"><span style="color: #ffca63;">{{ alert.status }}</span></td>
                                     </tr>
                                 </tbody>
-                            </table>
-                            <!-- 分页 -->
+                            </table>                            </div>                            <!-- 分页 -->
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; color: #5e8baf; font-size: 13px;">
                                 <div>
                                     共 <span style="color: #00f3ff; font-weight: bold;">{{ activeAlertsData.length }}</span> 条
@@ -245,10 +245,11 @@
                         </div>
 
                         <!-- 历史告警 Tab -->
-                        <div v-show="alertModalActiveTab === 'history'">
-                            <table style="width: 100%; border-collapse: collapse; color: #fff; font-size: 13px;">
-                                <thead>
-                                    <tr style="background: rgba(22, 86, 126, 0.5);">
+                        <div v-show="alertModalActiveTab === 'history'" style="display: flex; flex-direction: column; height: 100%;">
+                            <div style="flex: 1; overflow-y: auto;">
+                                <table style="width: 100%; border-collapse: collapse; color: #fff; font-size: 13px;">
+                                    <thead style="position: sticky; top: 0; z-index: 10;">
+                                        <tr style="background: rgba(22, 86, 126, 0.95);">
                                         <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 100px;">告警ID</th>
                                         <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 80px;">级别</th>
                                         <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e;">告警内容</th>
@@ -267,8 +268,7 @@
                                         <td style="padding: 10px; border-bottom: 1px solid #16567e; text-align: center;"><span style="color: #3ed6c6;">{{ alert.status }}</span></td>
                                     </tr>
                                 </tbody>
-                            </table>
-                            <!-- 分页 -->
+                            </table>                            </div>                            <!-- 分页 -->
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; color: #5e8baf; font-size: 13px;">
                                 <div>
                                     共 <span style="color: #00f3ff; font-weight: bold;">{{ historyAlertsData.length }}</span> 条

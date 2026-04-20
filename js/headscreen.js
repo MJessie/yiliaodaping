@@ -123,30 +123,41 @@ createApp({
             return Math.round(426 * multiplier);
         },
         centerNodes() {
-            // 所有170个应用按业务分组
-            const categories = ['LIS', 'PACS', '专科', '公卫', '区域检验', '医生', '基础', '急诊', '技术', '护士', '集成'];
-            const prefixes = ['前端-', '后端-', 'MW-'];
-            const suffixes = ['主服务', '网关服务', '接口服务', '系统管理', '配置中心', '服务集市', '病案管理', '托盘服务', '2d浏览器', '主页面服务'];
+            // 按照图片的精确节点数生成数据
+            const topCategories = [
+                { cat: 'LIS', n: 11 }, { cat: 'PACS', n: 8 }, { cat: '专科', n: 8 }, { cat: '公卫', n: 7 },
+                { cat: '区域检验', n: 8 }, { cat: '医生', n: 8 }, { cat: '基础', n: 8 }, { cat: '急诊', n: 8 },
+                { cat: '技术', n: 8 }, { cat: '护士', n: 5 }, { cat: '集成', n: 1 }
+            ];
+            const errorNodes = ['LIS11', '公卫7', '区域检验1', '医生5'];
             const nodes = [];
-            let total = 0;
 
-            categories.forEach(cat => {
-                const count = Math.floor(Math.random() * 5 + 13); // 每个分类下约13~17个应用
-                for (let i = 0; i < count; i++) {
-                    const r = Math.random();
-                    const health = r > 0.95 ? Math.floor(Math.random() * 20 + 60) : 100;
-                    const pre = prefixes[Math.floor(Math.random() * prefixes.length)];
-                    const suf = suffixes[Math.floor(Math.random() * suffixes.length)];
-                    nodes.push({ name: `${pre}${suf}`, category: cat, value: health });
-                    total++;
-                    if (total >= 170) return;
+            topCategories.forEach(obj => {
+                for (let i = 1; i <= obj.n; i++) {
+                    const nodeName = obj.cat + i;
+                    const health = errorNodes.includes(nodeName) ? 60 : 100;
+                    nodes.push({ name: nodeName, category: obj.cat, value: health });
                 }
-                if (total >= 170) return;
             });
-            // 补齐恰好170个
-            while (nodes.length < 170) {
-                nodes.push({ name: `后端-补充服务${nodes.length}`, category: '基础', value: 100 });
-            }
+
+            // 数据库与中间件
+            const dbConfigs = [
+                { name: 'Oracle DB', count: 2 },
+                { name: 'RocketMQ', count: 4 },
+                { name: 'Redis', count: 4 },
+                { name: 'Mysql DB', count: 2 },
+                { name: 'Milvus DB', count: 2 }
+            ];
+
+            dbConfigs.forEach(conf => {
+                for (let i = 1; i <= conf.count; i++) {
+                    nodes.push({ name: conf.name + '实例' + i, category: conf.name, value: 100 });
+                    // 同步的虚拟机
+                    const vmCat = conf.name.replace(' DB', ' VM').replace('RocketMQ', 'RocketMQ VM').replace('Redis', 'Redis VM');
+                    nodes.push({ name: vmCat + '实例' + i, category: vmCat, value: 100 });
+                }
+            });
+
             return nodes;
         },
         pagedUserList() {
@@ -1451,14 +1462,30 @@ createApp({
                 const scatterDataWarn = [];
                 const labelData = [];
 
-                // 提取所有的业务类别并建立区块索引（简单分为 4 列网格）
-                const categories = [...new Set(dataNodes.map(n => n.category || '其他'))];
+                // 按照原图布局（3行4列+两排紧密的实例）
                 const catLayout = {};
-                categories.forEach((cat, index) => {
-                    catLayout[cat] = {
-                        col: index % 4,
-                        row: Math.floor(index / 4)
-                    };
+                const topCats = ['LIS', 'PACS', '专科', '公卫', '区域检验', '医生', '基础', '急诊', '技术', '护士', '集成'];
+                const dbCats = ['Oracle DB', 'RocketMQ', 'Redis', 'Mysql DB', 'Milvus DB'];
+                const vmCats = ['Oracle VM', 'RocketMQ VM', 'Redis VM', 'Mysql VM', 'Milvus VM'];
+
+                // 顶层11个模块布局处理 (4列3行) - 增加模块之间间距
+                topCats.forEach((cat, index) => {
+                    const col = index % 4;
+                    const row = Math.floor(index / 4);
+                    // y起始为220，每行相隔140 (放大)；x起始为-40，每列相隔180 (放大)
+                    catLayout[cat] = { baseX: col * 180 - 40, baseY: 220 - row * 140 };
+                });
+
+                // 数据库由于是5个，占同样的总宽度 (3*180 = 540)，平均分布
+                dbCats.forEach((cat, index) => {
+                    const colX = index * (540 / 4) - 40; // 在 0~540 范围内按4等分排5个点
+                    catLayout[cat] = { baseX: colX, baseY: -200 };
+                });
+
+                // 虚拟机与数据库一一对应对其，在数据库的更下方
+                vmCats.forEach((cat, index) => {
+                    const colX = index * (540 / 4) - 40;
+                    catLayout[cat] = { baseX: colX, baseY: -320 };
                 });
 
                 const groupedNodes = {};
@@ -1469,17 +1496,36 @@ createApp({
                 });
 
                 for (const cat in groupedNodes) {
-                    const layout = catLayout[cat];
+                    const layout = catLayout[cat] || { baseX: 0, baseY: 300 };
                     const nodes = groupedNodes[cat];
 
-                    // 每个业务区块的基本左上角坐标（这里定义物理坐标网格）
-                    const baseX = layout.col * 100;
-                    const baseY = -layout.row * 100;
+                    const baseX = layout.baseX;
+                    const baseY = layout.baseY;
+
+                    // 在该业务区块内计算内部小节点的排列，先获取其真实渲染跨径
+                    let maxSubCols = 4;
+                    // 拉开每个圆点的间距
+                    let gapX = 26;
+                    let gapY = 26;
+
+                    if (cat === '护士') {
+                        maxSubCols = 3;
+                    } else if (dbCats.includes(cat) || vmCats.includes(cat)) {
+                        maxSubCols = 2; // 圆点排成2列
+                        gapX = 35;
+                        gapY = 35;
+                    } else if (cat === '集成') {
+                        maxSubCols = 1;
+                    }
+
+                    // 根据真实节点数和单行最大列数求出最大宽度和最后标题应当所处的X中心位置 (由于节点从baseX散发产生偏移)
+                    let actualCols = Math.min(nodes.length, maxSubCols);
+                    let titleCenterX = baseX + ((actualCols - 1) * gapX) / 2;
 
                     // 添加该业务模块的标题文本
                     labelData.push({
                         name: cat,
-                        value: [baseX + 45, baseY + 10], // X居中，Y偏上
+                        value: [titleCenterX, baseY + 30], // 自动横向居中于下方节点之上，纵向微调使其在模块上方
                         symbolSize: 1,
                         itemStyle: { color: 'transparent' },
                         label: {
@@ -1492,20 +1538,14 @@ createApp({
                         }
                     });
 
-                    // 在该业务区块内计算内部小节点的排列（按子网格）
-                    const subCols = Math.ceil(Math.sqrt(nodes.length)); // 自适应子列数
-                    const maxSubCols = Math.max(subCols, 1);
-                    const gapX = 85 / maxSubCols;
-                    const gapY = 70 / Math.max(Math.ceil(nodes.length / maxSubCols), 1);
-
                     nodes.forEach((node, i) => {
                         const sc = i % maxSubCols;
                         const sr = Math.floor(i / maxSubCols);
                         const isError = node.value < 85;
 
-                        // 横纵坐标偏移量计算
-                        const px = baseX + 5 + sc * gapX + (gapX / 2);
-                        const py = baseY - 15 - sr * gapY;
+                        // 横纵坐标偏移量计算 (左上角开始排，向下向右扩展)
+                        const px = baseX + sc * gapX;
+                        const py = baseY - sr * gapY;
 
                         const pt = {
                             name: node.name,
@@ -1538,8 +1578,8 @@ createApp({
                         }
                     },
                     grid: { left: 40, right: 40, top: 40, bottom: 20 },
-                    xAxis: { show: false, min: -10, max: 400 },
-                    yAxis: { show: false, min: -320, max: 20 },
+                    xAxis: { show: false, min: -80, max: 620 },
+                    yAxis: { show: false, min: -400, max: 280 },
                     series: [
                         {
                             name: 'labels',
