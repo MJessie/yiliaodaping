@@ -124,19 +124,62 @@ createApp({
         },
         centerNodes() {
             // 按照图片的精确节点数生成数据
+            const buildLayerMetric = (layerType, isError, category) => {
+                if (layerType === 'app') {
+                    return {
+                        metricName: '接口成功率',
+                        metricValue: isError ? Number((96 + Math.random() * 2).toFixed(2)) : Number((99.2 + Math.random() * 0.79).toFixed(2)),
+                        metricUnit: '%'
+                    };
+                }
+
+                if (layerType === 'db') {
+                    if (category === 'RocketMQ') {
+                        return {
+                            metricName: '消息堆积',
+                            metricValue: isError ? Math.floor(800 + Math.random() * 900) : Math.floor(20 + Math.random() * 120),
+                            metricUnit: '条'
+                        };
+                    }
+
+                    return {
+                        metricName: '连接使用率',
+                        metricValue: isError ? Number((86 + Math.random() * 8).toFixed(1)) : Number((38 + Math.random() * 28).toFixed(1)),
+                        metricUnit: '%'
+                    };
+                }
+
+                return {
+                    metricName: 'CPU使用率',
+                    metricValue: isError ? Number((88 + Math.random() * 8).toFixed(1)) : Number((26 + Math.random() * 32).toFixed(1)),
+                    metricUnit: '%'
+                };
+            };
+
             const topCategories = [
                 { cat: 'LIS', n: 11 }, { cat: 'PACS', n: 8 }, { cat: '专科', n: 8 }, { cat: '公卫', n: 7 },
                 { cat: '区域检验', n: 8 }, { cat: '医生', n: 8 }, { cat: '基础', n: 8 }, { cat: '急诊', n: 8 },
                 { cat: '技术', n: 8 }, { cat: '护士', n: 5 }, { cat: '集成', n: 1 }
             ];
             const errorNodes = ['LIS11', '公卫7', '区域检验1', '医生5'];
+            const middlewareErrorNodes = ['RocketMQ实例2', 'Redis实例3'];
+            const vmErrorNodes = ['RocketMQ VM实例2', 'Mysql VM实例1'];
             const nodes = [];
 
             topCategories.forEach(obj => {
                 for (let i = 1; i <= obj.n; i++) {
                     const nodeName = obj.cat + i;
                     const health = errorNodes.includes(nodeName) ? 60 : 100;
-                    nodes.push({ name: nodeName, category: obj.cat, value: health });
+                    const metric = buildLayerMetric('app', health < 85, obj.cat);
+                    nodes.push({
+                        name: nodeName,
+                        category: obj.cat,
+                        value: health,
+                        layerType: 'app',
+                        metricName: metric.metricName,
+                        metricValue: metric.metricValue,
+                        metricUnit: metric.metricUnit
+                    });
                 }
             });
 
@@ -151,10 +194,32 @@ createApp({
 
             dbConfigs.forEach(conf => {
                 for (let i = 1; i <= conf.count; i++) {
-                    nodes.push({ name: conf.name + '实例' + i, category: conf.name, value: 100 });
+                    const dbNodeName = conf.name + '实例' + i;
+                    const dbHealth = middlewareErrorNodes.includes(dbNodeName) ? 60 : 100;
+                    const dbMetric = buildLayerMetric('db', false, conf.name);
+                    nodes.push({
+                        name: dbNodeName,
+                        category: conf.name,
+                        value: dbHealth,
+                        layerType: 'db',
+                        metricName: dbMetric.metricName,
+                        metricValue: buildLayerMetric('db', dbHealth < 85, conf.name).metricValue,
+                        metricUnit: dbMetric.metricUnit
+                    });
                     // 同步的虚拟机
                     const vmCat = conf.name.replace(' DB', ' VM').replace('RocketMQ', 'RocketMQ VM').replace('Redis', 'Redis VM');
-                    nodes.push({ name: vmCat + '实例' + i, category: vmCat, value: 100 });
+                    const vmNodeName = vmCat + '实例' + i;
+                    const vmHealth = vmErrorNodes.includes(vmNodeName) ? 60 : 100;
+                    const vmMetric = buildLayerMetric('vm', vmHealth < 85, vmCat);
+                    nodes.push({
+                        name: vmNodeName,
+                        category: vmCat,
+                        value: vmHealth,
+                        layerType: 'vm',
+                        metricName: vmMetric.metricName,
+                        metricValue: vmMetric.metricValue,
+                        metricUnit: vmMetric.metricUnit
+                    });
                 }
             });
 
@@ -1461,6 +1526,21 @@ createApp({
                 const scatterDataNormal = [];
                 const scatterDataWarn = [];
                 const labelData = [];
+                const zoneData = [];
+                const connectorLines = [];
+                const zoneAnchors = {};
+                const guideLineData = [];
+                const zonePresets = {
+                    app: { width: 132, height: 108, topOffset: 30, titleInset: 16 },
+                    db: { width: 112, height: 84, topOffset: 20, titleInset: 14 },
+                    vm: { width: 112, height: 84, topOffset: 20, titleInset: 14 }
+                };
+                const layerSymbols = {
+                    app: 'path://M120 120H360V360H120zM420 120H660V360H420zM120 420H360V660H120zM420 420H660V660H420z',
+                    db: 'path://M160 220C160 160 316 120 512 120C708 120 864 160 864 220V760C864 820 708 860 512 860C316 860 160 820 160 760V220zM160 220C160 280 316 320 512 320C708 320 864 280 864 220M160 490C160 550 316 590 512 590C708 590 864 550 864 490',
+                    middleware: 'path://M160 250L320 170L480 250L320 330zM544 250L704 170L864 250L704 330zM160 470L320 390L480 470L320 550zM544 470L704 390L864 470L704 550zM352 610L512 530L672 610L512 690z',
+                    vm: 'path://M150 160H874C915 160 948 193 948 234V404C948 445 915 478 874 478H150C109 478 76 445 76 404V234C76 193 109 160 150 160zM150 546H874C915 546 948 579 948 620V790C948 831 915 864 874 864H150C109 864 76 831 76 790V620C76 579 109 546 150 546zM188 248H736V390H188zM188 634H736V776H188zM792 248H846V302H792zM792 336H846V390H792zM792 634H846V688H792zM792 722H846V776H792z'
+                };
 
                 // 按照原图布局（3行4列+两排紧密的实例）
                 const catLayout = {};
@@ -1468,24 +1548,49 @@ createApp({
                 const dbCats = ['Oracle DB', 'RocketMQ', 'Redis', 'Mysql DB', 'Milvus DB'];
                 const vmCats = ['Oracle VM', 'RocketMQ VM', 'Redis VM', 'Mysql VM', 'Milvus VM'];
 
-                // 顶层11个模块布局处理 (4列3行) - 增加模块之间间距
-                topCats.forEach((cat, index) => {
-                    const col = index % 4;
-                    const row = Math.floor(index / 4);
-                    // y起始为220，每行相隔140 (放大)；x起始为-40，每列相隔180 (放大)
-                    catLayout[cat] = { baseX: col * 180 - 40, baseY: 220 - row * 140 };
+                // 顶层11个模块布局处理：使用固定中心点，保证第三排不会因为列数不同而视觉错位
+                const appCenters = {
+                    'LIS': { centerX: 35, baseY: 170 },
+                    'PACS': { centerX: 225, baseY: 170 },
+                    '专科': { centerX: 415, baseY: 170 },
+                    '公卫': { centerX: 605, baseY: 170 },
+                    '区域检验': { centerX: 35, baseY: 35 },
+                    '医生': { centerX: 225, baseY: 35 },
+                    '基础': { centerX: 415, baseY: 35 },
+                    '急诊': { centerX: 605, baseY: 35 },
+                    '技术': { centerX: 115, baseY: -100 },
+                    '护士': { centerX: 305, baseY: -100 },
+                    '集成': { centerX: 495, baseY: -100 }
+                };
+                topCats.forEach((cat) => {
+                    catLayout[cat] = appCenters[cat];
                 });
 
                 // 数据库由于是5个，占同样的总宽度 (3*180 = 540)，平均分布
                 dbCats.forEach((cat, index) => {
-                    const colX = index * (540 / 4) - 40; // 在 0~540 范围内按4等分排5个点
-                    catLayout[cat] = { baseX: colX, baseY: -200 };
+                    const colX = index * (560 / 4) - 30;
+                    catLayout[cat] = { centerX: colX + 17.5, baseY: -240 };
                 });
 
                 // 虚拟机与数据库一一对应对其，在数据库的更下方
                 vmCats.forEach((cat, index) => {
-                    const colX = index * (540 / 4) - 40;
-                    catLayout[cat] = { baseX: colX, baseY: -320 };
+                    const colX = index * (560 / 4) - 30;
+                    catLayout[cat] = { centerX: colX + 17.5, baseY: -390 };
+                });
+
+                [
+                    { name: '应用层', y: 118, color: 'rgba(72,255,213,0.22)' },
+                    { name: '数据库/中间件层', y: -188, color: 'rgba(72,255,213,0.22)' },
+                    { name: '虚机资源层', y: -338, color: 'rgba(72,255,213,0.22)' }
+                ].forEach((guide) => {
+                    guideLineData.push({
+                        coords: [[-70, guide.y], [640, guide.y]],
+                        lineStyle: {
+                            color: guide.color,
+                            width: 1,
+                            type: 'dashed'
+                        }
+                    });
                 });
 
                 const groupedNodes = {};
@@ -1496,11 +1601,12 @@ createApp({
                 });
 
                 for (const cat in groupedNodes) {
-                    const layout = catLayout[cat] || { baseX: 0, baseY: 300 };
+                    const layout = catLayout[cat] || { centerX: 0, baseY: 300 };
                     const nodes = groupedNodes[cat];
 
-                    const baseX = layout.baseX;
+                    const centerX = layout.centerX;
                     const baseY = layout.baseY;
+                    const layerType = topCats.includes(cat) ? 'app' : (dbCats.includes(cat) ? 'db' : 'vm');
 
                     // 在该业务区块内计算内部小节点的排列，先获取其真实渲染跨径
                     let maxSubCols = 4;
@@ -1519,22 +1625,59 @@ createApp({
                     }
 
                     // 根据真实节点数和单行最大列数求出最大宽度和最后标题应当所处的X中心位置 (由于节点从baseX散发产生偏移)
-                    let actualCols = Math.min(nodes.length, maxSubCols);
-                    let titleCenterX = baseX + ((actualCols - 1) * gapX) / 2;
+                    const actualCols = Math.min(nodes.length, maxSubCols);
+                    const actualRows = Math.max(1, Math.ceil(nodes.length / maxSubCols));
+                    const groupWidth = (actualCols - 1) * gapX;
+                    const groupHeight = (actualRows - 1) * gapY;
+                    const zonePreset = zonePresets[layerType];
+                    const titleCenterX = centerX;
+                    const nodeStartX = centerX - groupWidth / 2;
+                    const zoneWidth = zonePreset.width;
+                    const zoneHeight = zonePreset.height;
+                    const zoneCenterY = baseY + zonePreset.topOffset - zoneHeight / 2;
+                    const titleY = zoneCenterY - zoneHeight / 2 + zonePreset.titleInset;
+
+                    zoneData.push({
+                        value: [titleCenterX, zoneCenterY],
+                        symbolSize: [zoneWidth, zoneHeight],
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+                                { offset: 0, color: 'rgba(23, 75, 84, 0.26)' },
+                                { offset: 1, color: 'rgba(5, 25, 28, 0.10)' }
+                            ]),
+                            borderColor: 'rgba(73, 255, 218, 0.35)',
+                            borderWidth: 1.2,
+                            shadowBlur: 16,
+                            shadowColor: 'rgba(73, 255, 218, 0.15)'
+                        }
+                    });
+
+                    zoneAnchors[cat] = {
+                        centerX: titleCenterX,
+                        topY: zoneCenterY + zoneHeight / 2 - 12,
+                        bottomY: zoneCenterY - zoneHeight / 2 + 12
+                    };
 
                     // 添加该业务模块的标题文本
                     labelData.push({
                         name: cat,
-                        value: [titleCenterX, baseY + 30], // 自动横向居中于下方节点之上，纵向微调使其在模块上方
+                        value: [titleCenterX, titleY],
                         symbolSize: 1,
                         itemStyle: { color: 'transparent' },
                         label: {
                             show: true,
-                            formatter: '{b}',
+                            formatter: `{name|${cat}}`,
                             position: 'center',
-                            color: '#00f3ff',
-                            fontSize: 14,
-                            fontWeight: 'bold'
+                            rich: {
+                                name: {
+                                    color: '#eafcff',
+                                    fontSize: layerType === 'app' ? 15 : 13,
+                                    fontWeight: 700,
+                                    lineHeight: 20,
+                                    textShadowColor: 'rgba(0, 243, 255, 0.25)',
+                                    textShadowBlur: 10
+                                }
+                            }
                         }
                     });
 
@@ -1544,24 +1687,42 @@ createApp({
                         const isError = node.value < 85;
 
                         // 横纵坐标偏移量计算 (左上角开始排，向下向右扩展)
-                        const px = baseX + sc * gapX;
+                        const px = nodeStartX + sc * gapX;
                         const py = baseY - sr * gapY;
+                        const nodeSymbol = layerSymbols[layerType] || 'circle';
+                        const nodeSymbolSize = isError
+                            ? (layerType === 'app' ? 19 : 21)
+                            : (layerType === 'app' ? 17 : (layerType === 'db' ? 19 : 18));
+                        const nodeColor = isError
+                            ? new echarts.graphic.RadialGradient(0.5, 0.5, 0.6, [
+                                { offset: 0, color: '#fff4ef' },
+                                { offset: 0.45, color: '#ff8f70' },
+                                { offset: 1, color: '#ff3b3b' }
+                            ])
+                            : new echarts.graphic.RadialGradient(0.5, 0.5, 0.65, [
+                                { offset: 0, color: '#e9fff8' },
+                                { offset: 0.42, color: '#51ffd6' },
+                                { offset: 1, color: '#00b98f' }
+                            ]);
 
                         const pt = {
                             name: node.name,
                             category: cat,
+                            layerType: node.layerType || layerType,
+                            metricName: node.metricName,
+                            metricValue: node.metricValue,
+                            metricUnit: node.metricUnit,
                             value: [px, py, node.value],
+                            symbol: nodeSymbol,
                             itemStyle: {
-                                color: isError ? '#ff2a2a' : new echarts.graphic.RadialGradient(0.5, 0.5, 0.5, [{
-                                    offset: 0, color: '#afffd8'
-                                }, {
-                                    offset: 1, color: '#00ff88'
-                                }]),
-                                shadowBlur: isError ? 20 : 15,
-                                shadowColor: isError ? '#ff2a2a' : '#00ff88',
-                                opacity: 0.9
+                                color: nodeColor,
+                                borderColor: isError ? '#ffd0c5' : '#c7fff3',
+                                borderWidth: 1,
+                                shadowBlur: isError ? 28 : (layerType === 'app' ? 16 : 18),
+                                shadowColor: isError ? 'rgba(255, 75, 75, 0.55)' : 'rgba(72,255,213,0.38)',
+                                opacity: 0.96
                             },
-                            symbolSize: isError ? 16 : 12,
+                            symbolSize: nodeSymbolSize,
                         };
 
                         if (isError) scatterDataWarn.push(pt);
@@ -1569,37 +1730,100 @@ createApp({
                     });
                 }
 
+                dbCats.forEach((dbCat) => {
+                    const vmCat = dbCat.replace(' DB', ' VM').replace('RocketMQ', 'RocketMQ VM').replace('Redis', 'Redis VM');
+                    if (!zoneAnchors[dbCat] || !zoneAnchors[vmCat]) return;
+                    connectorLines.push({
+                        coords: [
+                            [zoneAnchors[dbCat].centerX, zoneAnchors[dbCat].bottomY],
+                            [zoneAnchors[vmCat].centerX, zoneAnchors[vmCat].topY]
+                        ],
+                        lineStyle: {
+                            color: 'rgba(129, 165, 255, 0.3)',
+                            width: 1.6,
+                            curveness: 0.08
+                        }
+                    });
+                });
+
                 chart.clear();
                 chart.setOption({
+                    animationDuration: 900,
+                    animationDurationUpdate: 450,
                     tooltip: {
                         formatter: function (params) {
-                            if (params.seriesName === 'labels') return '';
-                            return `${params.data.category} - ${params.data.name} <br/>健康度: ${params.data.value[2]}`;
+                            if (params.seriesName === 'labels' || params.seriesName === 'zones' || params.seriesName === 'links' || params.seriesName === 'guides' || params.seriesName === 'guideLabels') return '';
+                            const layerName = params.data.layerType === 'app' ? '应用层' : (params.data.layerType === 'db' ? '数据库/中间件' : '虚拟机');
+                            const metricName = params.data.metricName || '健康度';
+                            const metricValue = params.data.metricValue !== undefined ? params.data.metricValue : params.data.value[2];
+                            const metricUnit = params.data.metricUnit || '';
+                            return `${layerName}<br/>${params.data.category} / ${params.data.name}<br/>${metricName}: ${metricValue}${metricUnit}<br/>状态分: ${params.data.value[2]}`;
                         }
                     },
                     grid: { left: 40, right: 40, top: 40, bottom: 20 },
-                    xAxis: { show: false, min: -80, max: 620 },
-                    yAxis: { show: false, min: -400, max: 280 },
+                    xAxis: { show: false, min: -80, max: 660 },
+                    yAxis: { show: false, min: -460, max: 240 },
                     series: [
+                        {
+                            name: 'guides',
+                            type: 'lines',
+                            coordinateSystem: 'cartesian2d',
+                            silent: true,
+                            data: guideLineData,
+                            z: 0,
+                            lineStyle: {
+                                color: 'rgba(112, 210, 228, 0.2)',
+                                width: 1,
+                                type: 'dashed'
+                            }
+                        },
+                        {
+                            name: 'links',
+                            type: 'lines',
+                            coordinateSystem: 'cartesian2d',
+                            silent: true,
+                            data: connectorLines,
+                            z: 0,
+                            lineStyle: {
+                                color: 'rgba(112, 210, 228, 0.3)',
+                                width: 1.5,
+                                type: 'dashed',
+                                curveness: 0.08
+                            },
+                            effect: {
+                                show: true,
+                                period: 4,
+                                trailLength: 0.12,
+                                symbol: 'circle',
+                                symbolSize: 4,
+                                color: '#9fc7ff'
+                            }
+                        },
+                        {
+                            name: 'zones',
+                            type: 'scatter',
+                            silent: true,
+                            symbol: 'roundRect',
+                            data: zoneData,
+                            z: 1
+                        },
                         {
                             name: 'labels',
                             type: 'scatter',
                             data: labelData,
-                            symbol: 'rect',
+                            symbol: 'circle',
                             silent: true // 忽略鼠标事件
                         },
                         {
-                            type: 'effectScatter',
+                            type: 'scatter',
                             data: scatterDataNormal,
-                            symbol: 'circle',
-                            rippleEffect: { brushType: 'fill', scale: 2.5, period: 5 },
-                            itemStyle: { opacity: 0.8 }
+                            z: 3
                         },
                         {
                             type: 'effectScatter',
                             data: scatterDataWarn,
-                            symbol: 'circle',
-                            rippleEffect: { brushType: 'stroke', scale: 4, period: 2 },
+                            rippleEffect: { brushType: 'stroke', scale: 5, period: 2.4 },
+                            itemStyle: { opacity: 1 },
                             zlevel: 2
                         }
                     ]

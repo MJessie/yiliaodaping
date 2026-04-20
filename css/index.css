@@ -995,6 +995,332 @@
             color: #fff;
         }
 
+        .center-app-topology {
+            position: relative;
+            height: 100%;
+            margin-top: 56px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            padding: 0;
+            border-radius: 0;
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            overflow: visible;
+        }
+
+        .center-app-topology::before,
+        .center-app-topology::after {
+            content: '';
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .center-app-topology::before {
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.04) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.65), transparent 92%);
+            -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.65), transparent 92%);
+        }
+
+        .center-app-topology::after {
+            display: none;
+        }
+
+        .center-topology-hero {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .center-topology-copy h2 {
+            margin: 6px 0 8px;
+            font-size: 30px;
+            letter-spacing: 2px;
+            color: #f2fbff;
+            text-shadow: 0 0 18px rgba(0, 243, 255, 0.2);
+        }
+
+        .center-topology-copy p {
+            margin: 0;
+            color: #82adc7;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+
+        .center-topology-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            color: var(--accent);
+            font-size: 11px;
+            letter-spacing: 1.8px;
+            border: 1px solid rgba(0, 243, 255, 0.22);
+            background: rgba(0, 243, 255, 0.08);
+            box-shadow: inset 0 0 12px rgba(0, 243, 255, 0.08);
+        }
+
+        .center-topology-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 12px;
+        }
+
+        .topology-toolbar {
+            position: absolute;
+            top: 12px;
+            left: 18px;
+            right: 18px;
+            z-index: 4;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            pointer-events: none;
+        }
+
+        .topology-toolbar .ghost-button {
+            pointer-events: auto;
+        }
+
+        .topology-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .topology-legend.compact {
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(6, 20, 32, 0.72);
+            border: 1px solid rgba(0, 243, 255, 0.14);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+            backdrop-filter: blur(10px);
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            color: #9ec9df;
+            font-size: 12px;
+            background: rgba(7, 22, 33, 0.72);
+            border: 1px solid rgba(0, 243, 255, 0.16);
+        }
+
+        .topology-legend.compact .legend-item {
+            padding: 4px 8px;
+            background: transparent;
+            border-color: transparent;
+        }
+
+        .legend-swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            box-shadow: 0 0 10px currentColor;
+            display: inline-block;
+        }
+
+        .legend-swatch.app {
+            color: #39ffd4;
+            background: linear-gradient(180deg, #aaffea 0%, #1cff97 100%);
+        }
+
+        .legend-swatch.db {
+            color: #57e6ff;
+            border-radius: 3px;
+            background: linear-gradient(180deg, #8de6ff 0%, #23c7ff 100%);
+        }
+
+        .legend-swatch.vm {
+            color: #79a8ff;
+            transform: rotate(45deg);
+            border-radius: 2px;
+            background: linear-gradient(180deg, #bad0ff 0%, #648fff 100%);
+        }
+
+        .legend-swatch.warn {
+            color: #ff6b6b;
+            background: linear-gradient(180deg, #ffd1d1 0%, #ff4b4b 100%);
+        }
+
+        .topology-stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .stat-item {
+            position: relative;
+            min-height: 88px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(0, 243, 255, 0.16);
+            background: linear-gradient(180deg, rgba(7, 23, 35, 0.86) 0%, rgba(5, 15, 24, 0.62) 100%);
+            box-shadow: inset 0 0 18px rgba(0, 243, 255, 0.05);
+            overflow: hidden;
+        }
+
+        .stat-item::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 28%);
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        .stat-item.tone-cyan {
+            border-color: rgba(0, 243, 255, 0.22);
+        }
+
+        .stat-item.tone-green {
+            border-color: rgba(0, 255, 136, 0.2);
+        }
+
+        .stat-item.tone-amber {
+            border-color: rgba(255, 184, 0, 0.22);
+        }
+
+        .stat-lbl {
+            font-size: 12px;
+            color: #83a7bb;
+            letter-spacing: 1px;
+        }
+
+        .stat-val {
+            margin-top: 6px;
+            font-size: 34px;
+            line-height: 1;
+            font-weight: 700;
+            color: #eefcff;
+            text-shadow: 0 0 18px rgba(0, 243, 255, 0.16);
+        }
+
+        .stat-val.good {
+            color: #6dffbb;
+            text-shadow: 0 0 18px rgba(0, 255, 136, 0.18);
+        }
+
+        .stat-val.warn {
+            color: #ffcb69;
+            text-shadow: 0 0 18px rgba(255, 184, 0, 0.18);
+        }
+
+        .stat-sub {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #6f90a7;
+        }
+
+        .center-chart-frame {
+            position: relative;
+            flex: 1;
+            min-height: 640px;
+            border-radius: 30px;
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            background:
+                radial-gradient(circle at 50% 36%, rgba(0, 243, 255, 0.16), transparent 28%),
+                radial-gradient(circle at 50% 8%, rgba(67, 180, 255, 0.08), transparent 24%),
+                linear-gradient(180deg, rgba(5, 20, 34, 0.78), rgba(3, 10, 20, 0.92));
+            box-shadow:
+                inset 0 0 40px rgba(0, 243, 255, 0.05),
+                inset 0 -40px 60px rgba(0, 0, 0, 0.22),
+                0 22px 48px rgba(0, 0, 0, 0.22);
+            overflow: hidden;
+        }
+
+        .center-chart-frame::before,
+        .center-chart-frame::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .center-chart-frame::before {
+            background-image:
+                linear-gradient(rgba(0, 243, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.04) 1px, transparent 1px);
+            background-size: 34px 34px;
+            mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 1), transparent 95%);
+            -webkit-mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 1), transparent 95%);
+        }
+
+        .center-chart-frame::after {
+            inset: 12px;
+            border: 1px solid rgba(120, 220, 255, 0.07);
+            border-radius: 22px;
+        }
+
+        .center-chart-glow {
+            position: absolute;
+            inset: 18% 16% auto;
+            height: 220px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(0, 243, 255, 0.16) 0%, rgba(0, 136, 255, 0.04) 45%, transparent 72%);
+            filter: blur(18px);
+            pointer-events: none;
+        }
+
+        .center-chart-ring {
+            position: absolute;
+            top: 22%;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 243, 255, 0.1);
+            box-shadow: inset 0 0 30px rgba(0, 243, 255, 0.04);
+            pointer-events: none;
+        }
+
+        .center-chart-ring::before,
+        .center-chart-ring::after {
+            content: '';
+            position: absolute;
+            inset: 12px;
+            border-radius: 50%;
+            border: 1px dashed rgba(0, 243, 255, 0.12);
+        }
+
+        .center-chart-ring::after {
+            inset: 28px;
+            border-style: solid;
+            opacity: 0.5;
+        }
+
+        .center-chart-ring.ring-left {
+            left: -48px;
+        }
+
+        .center-chart-ring.ring-right {
+            right: -48px;
+        }
+
+        .topology-chart-canvas {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+            min-height: 640px;
+        }
+
         @keyframes rise {
             from {
                 opacity: 0;
@@ -1030,6 +1356,21 @@
             .leader-row .hide-md {
                 display: none;
             }
+
+            .center-topology-hero {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .center-topology-actions,
+            .topology-toolbar {
+                width: 100%;
+                align-items: flex-start;
+            }
+
+            .topology-legend {
+                justify-content: flex-start;
+            }
         }
 
         @media (max-width: 900px) {
@@ -1048,6 +1389,27 @@
             .page-subtitle {
                 align-items: flex-start;
                 flex-direction: column;
+            }
+
+            .center-app-topology {
+                margin-top: 52px;
+            }
+
+            .topology-toolbar {
+                position: absolute;
+                left: 12px;
+                right: 12px;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .center-chart-ring {
+                display: none;
+            }
+
+            .topology-legend.compact {
+                width: 100%;
+                justify-content: flex-start;
             }
 
             .summary-grid,

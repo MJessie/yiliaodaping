@@ -77,31 +77,15 @@
                 </div>
 
                 <div class="center-col">
-                    <div class="page-subtitle"
-                        style="position: absolute; top: 10px; left: 10px; right: 10px; z-index: 10; justify-content: flex-end;">
-                        <button class="ghost-button" @click="switchView('hq')">返回总部总览</button>
-                    </div>
-
-                    <div class="center-app-topology"
-                        style="border: none; background: transparent; height: 100%; box-shadow: none; margin-top: 60px; display: flex; flex-direction: column;">
-
-                        <div class="topology-stats">
-                            <div class="stat-item">
-                                <div class="stat-val">{{ centerNodes ? centerNodes.length : 0 }}</div>
-                                <div class="stat-lbl">应用总数</div>
+                    <div class="center-app-topology">
+                        <div class="center-chart-frame">
+                            <div class="topology-toolbar">
+                                <button class="ghost-button" @click="switchView('hq')">返回总部总览</button>
                             </div>
-                            <div class="stat-item">
-                                <div class="stat-val good">{{ centerNodes ? centerNodes.filter(n => n.value >= 85).length : 0 }}</div>
-                                <div class="stat-lbl">正常</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-val warn">{{ centerNodes ? centerNodes.filter(n => n.value < 85).length : 0 }}</div>
-                                <div class="stat-lbl">异常</div>
-                            </div>
-                        </div>
-
-                        <div id="hospital-topology-chart"
-                            style="width: 100%; flex: 1; min-height: 500px; margin-top: 20px;">
+                            <div class="center-chart-glow"></div>
+                            <div class="center-chart-ring ring-left"></div>
+                            <div class="center-chart-ring ring-right"></div>
+                            <div id="hospital-topology-chart" class="topology-chart-canvas"></div>
                         </div>
                     </div>
                 </div>
