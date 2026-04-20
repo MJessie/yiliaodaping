@@ -16,6 +16,8 @@ createApp({
             activeMetricTitle: '',
             activeModalCard: null,
             selectedAlertLevels: ['P0', 'P1', 'P2', 'P3'],
+            selectedResponseLevel: '全部',
+            selectedTicketStatus: '全部',
             modalAlertLevels: ['P0', 'P1', 'P2', 'P3'],
             modalProject: 'all',
             modalObjType: 'all',
@@ -23,7 +25,18 @@ createApp({
             modalRole: 'all',
             modalTimeRange: 'month',
             userCurrentPage: 1,
-            userPageSize: 8
+            userPageSize: 8,
+            activeAppTab: 'core',
+            systemAlertModalVisible: false,
+            alertModalActiveTab: 'active',
+            alertActivePage: 1,
+            alertHistoryPage: 1,
+            alertPageSize: 8,
+            dutyPersonnel: [
+                { name: '王建国', role: '系统管理员', phone: '138-1234-5678' },
+                { name: '刘洋', role: '网络工程师', phone: '139-9876-5432' },
+                { name: '张伟', role: '数据库运维', phone: '158-1122-3344' }
+            ]
         };
     },
     computed: {
@@ -109,6 +122,33 @@ createApp({
             const multiplier = this.selectedRange === 'week' ? 6.5 : this.selectedRange === 'month' ? 25 : 1;
             return Math.round(426 * multiplier);
         },
+        centerNodes() {
+            // 所有170个应用按业务分组
+            const categories = ['LIS', 'PACS', '专科', '公卫', '区域检验', '医生', '基础', '急诊', '技术', '护士', '集成'];
+            const prefixes = ['前端-', '后端-', 'MW-'];
+            const suffixes = ['主服务', '网关服务', '接口服务', '系统管理', '配置中心', '服务集市', '病案管理', '托盘服务', '2d浏览器', '主页面服务'];
+            const nodes = [];
+            let total = 0;
+
+            categories.forEach(cat => {
+                const count = Math.floor(Math.random() * 5 + 13); // 每个分类下约13~17个应用
+                for (let i = 0; i < count; i++) {
+                    const r = Math.random();
+                    const health = r > 0.95 ? Math.floor(Math.random() * 20 + 60) : 100;
+                    const pre = prefixes[Math.floor(Math.random() * prefixes.length)];
+                    const suf = suffixes[Math.floor(Math.random() * suffixes.length)];
+                    nodes.push({ name: `${pre}${suf}`, category: cat, value: health });
+                    total++;
+                    if (total >= 170) return;
+                }
+                if (total >= 170) return;
+            });
+            // 补齐恰好170个
+            while (nodes.length < 170) {
+                nodes.push({ name: `后端-补充服务${nodes.length}`, category: '基础', value: 100 });
+            }
+            return nodes;
+        },
         pagedUserList() {
             const start = (this.userCurrentPage - 1) * this.userPageSize;
             return this.activeUserList.slice(start, start + this.userPageSize);
@@ -116,6 +156,36 @@ createApp({
         userTotalPages() {
             return Math.ceil(this.activeUserList.length / this.userPageSize) || 1;
         },
+        // --- Alert Modal Computed ---
+        activeAlertsData() {
+            const arr = [];
+            for (let i = 0; i < 35; i++) {
+                arr.push({ id: 1000 + i, level: i % 4 === 0 ? 'P1' : 'P2', content: '系统组件服务降级或网关超时报错', time: '10:0' + (i % 9), status: '处理中' });
+            }
+            return arr;
+        },
+        historyAlertsData() {
+            const arr = [];
+            for (let i = 0; i < 120; i++) {
+                arr.push({ id: 2000 + i, level: i % 5 === 0 ? 'P2' : 'P3', content: 'CPU内存使用率短暂峰值达到90%', time: '昨天', status: '已恢复' });
+            }
+            return arr;
+        },
+        pagedActiveAlerts() {
+            const start = (this.alertActivePage - 1) * this.alertPageSize;
+            return this.activeAlertsData.slice(start, start + this.alertPageSize);
+        },
+        activeAlertsTotalPages() {
+            return Math.ceil(this.activeAlertsData.length / this.alertPageSize) || 1;
+        },
+        pagedHistoryAlerts() {
+            const start = (this.alertHistoryPage - 1) * this.alertPageSize;
+            return this.historyAlertsData.slice(start, start + this.alertPageSize);
+        },
+        historyAlertsTotalPages() {
+            return Math.ceil(this.historyAlertsData.length / this.alertPageSize) || 1;
+        },
+        // -------------------------
         selectedHospital() {
             return this.hospitals.find((item) => item.id === this.selectedHospitalId) || this.hospitals[0];
         },
@@ -152,26 +222,42 @@ createApp({
         hospitalCards() {
             const hospital = this.selectedHospital;
             const availabilityValue = Number.parseFloat(hospital.availability);
+
+            const formatTrend = (text) => text ? text.replace(/[提升下降]/g, '').replace('较上月', '').trim() : '';
+
+            const _his = (availabilityValue - 0.02).toFixed(2);
+            const _emr = (availabilityValue + 0.01).toFixed(2);
+            const _lis = (availabilityValue - 0.05).toFixed(2);
+            const _pacs = (availabilityValue + 0.04).toFixed(2);
+
             return [
-                { label: '核心系统平均可用率', value: hospital.availability, note: '近 30 天整体可用', trendDirection: hospital.weeklyCompare.availability.direction, trendGood: hospital.weeklyCompare.availability.good, trendText: hospital.weeklyCompare.availability.delta, tone: availabilityValue >= 99.9 ? 'good' : 'warn' },
-                { label: '问题闭环率', value: hospital.closureRate, note: '已关闭工单 / 总工单', trendDirection: hospital.weeklyCompare.closure.direction, trendGood: hospital.weeklyCompare.closure.good, trendText: hospital.weeklyCompare.closure.delta, tone: 'good' },
-                { label: '平均响应时长', value: hospital.responseAvg, note: '告警生成至处理中', trendDirection: hospital.weeklyCompare.response.direction, trendGood: hospital.weeklyCompare.response.good, trendText: hospital.weeklyCompare.response.delta, tone: 'info' },
-                { label: '平均恢复时长', value: hospital.recoveryAvg, note: '告警生成至关闭', trendDirection: 'down', trendGood: true, trendText: '较上月下降 13%', tone: 'info' },
-                { label: '超时率', value: hospital.timeoutRate, note: '超时工单 / 总工单', trendDirection: hospital.weeklyCompare.timeout.direction, trendGood: hospital.weeklyCompare.timeout.good, trendText: hospital.weeklyCompare.timeout.delta, tone: Number.parseFloat(hospital.timeoutRate) <= 5 ? 'good' : 'warn' }
+                { label: 'HIS可用率', value: _his + '%', trendDirection: 'up', trendGood: true, trendText: '0.01%', tone: _his >= 99.9 ? 'good' : 'warn', span: 1 },
+                { label: 'EMR可用率', value: _emr + '%', trendDirection: 'up', trendGood: true, trendText: '0.01%', tone: _emr >= 99.9 ? 'good' : 'warn', span: 1 },
+                { label: 'LIS可用率', value: _lis + '%', trendDirection: 'down', trendGood: false, trendText: '0.02%', tone: _lis >= 99.9 ? 'good' : 'warn', span: 1 },
+                { label: 'PACS可用率', value: _pacs + '%', trendDirection: 'up', trendGood: true, trendText: '0.03%', tone: _pacs >= 99.9 ? 'good' : 'warn', span: 1 },
+                { label: '平均响应时长', value: hospital.responseAvg, note: '告警生成至处理中', trendDirection: hospital.weeklyCompare.response.direction, trendGood: hospital.weeklyCompare.response.good, trendText: formatTrend(hospital.weeklyCompare.response.delta), tone: 'info', span: 2 },
+                { label: '平均恢复时长', value: hospital.recoveryAvg, note: '告警生成至关闭', trendDirection: 'down', trendGood: true, trendText: '13%', tone: 'info', span: 2 },
+                { label: '问题闭环率', value: hospital.closureRate, note: '已关闭工单 / 总工单', trendDirection: hospital.weeklyCompare.closure.direction, trendGood: hospital.weeklyCompare.closure.good, trendText: formatTrend(hospital.weeklyCompare.closure.delta), tone: 'good', span: 2 },
+                { label: '超时率', value: hospital.timeoutRate, note: '超时工单 / 总工单', trendDirection: hospital.weeklyCompare.timeout.direction, trendGood: hospital.weeklyCompare.timeout.good, trendText: formatTrend(hospital.weeklyCompare.timeout.delta), tone: Number.parseFloat(hospital.timeoutRate) <= 5 ? 'good' : 'warn', span: 2 }
             ];
         },
         compareCards() {
             const compare = this.selectedHospital.weeklyCompare;
+            const formatTrend = (text) => text ? text.replace(/[提升下降]/g, '').replace('较上月', '').trim() : '';
+
             return [
-                { label: '本周告警量', value: compare.alert.value, delta: compare.alert.delta, direction: compare.alert.direction, good: compare.alert.good, period: compare.alert.period },
-                { label: '本周响应时长', value: compare.response.value, delta: compare.response.delta, direction: compare.response.direction, good: compare.response.good, period: compare.response.period },
-                { label: '本周超时率', value: compare.timeout.value, delta: compare.timeout.delta, direction: compare.timeout.direction, good: compare.timeout.good, period: compare.timeout.period },
-                { label: '本月可用率', value: compare.availability.value, delta: compare.availability.delta, direction: compare.availability.direction, good: compare.availability.good, period: compare.availability.period },
-                { label: '本月闭环率', value: compare.closure.value, delta: compare.closure.delta, direction: compare.closure.direction, good: compare.closure.good, period: compare.closure.period }
+                { label: '本周告警量', value: compare.alert.value, delta: formatTrend(compare.alert.delta), direction: compare.alert.direction, good: compare.alert.good, period: compare.alert.period },
+                { label: '本周响应时长', value: compare.response.value, delta: formatTrend(compare.response.delta), direction: compare.response.direction, good: compare.response.good, period: compare.response.period },
+                { label: '本周超时率', value: compare.timeout.value, delta: formatTrend(compare.timeout.delta), direction: compare.timeout.direction, good: compare.timeout.good, period: compare.timeout.period },
+                { label: '本月可用率', value: compare.availability.value, delta: formatTrend(compare.availability.delta), direction: compare.availability.direction, good: compare.availability.good, period: compare.availability.period },
+                { label: '本月闭环率', value: compare.closure.value, delta: formatTrend(compare.closure.delta), direction: compare.closure.direction, good: compare.closure.good, period: compare.closure.period }
             ];
         }
     },
     watch: {
+        activeAppTab() {
+            this.$nextTick(() => this.renderHospitalTopologyChart());
+        },
         currentView() {
             this.$nextTick(() => this.renderCharts());
         },
@@ -205,7 +291,22 @@ createApp({
         selectedAlertLevels: {
             deep: true,
             handler() {
-                this.$nextTick(() => this.renderLeftChart1());
+                this.$nextTick(() => {
+                    this.renderLeftChart1();
+                    if (this.currentView !== 'hq') {
+                        this.renderHospitalAlertChart();
+                    }
+                });
+            }
+        },
+        selectedResponseLevel() {
+            if (this.currentView !== 'hq') {
+                this.$nextTick(() => this.renderHospitalResponseChart());
+            }
+        },
+        selectedTicketStatus() {
+            if (this.currentView !== 'hq') {
+                this.$nextTick(() => this.renderHospitalTicketChart());
             }
         },
         modalAlertLevels: {
@@ -266,7 +367,9 @@ createApp({
         this.updateTime();
         this.timer = window.setInterval(this.updateTime, 1000);
         window.addEventListener('resize', this.handleResize);
-        this.$nextTick(() => this.renderCharts());
+        this.$nextTick(() => {
+            this.renderCharts();
+        });
     },
     beforeUnmount() {
         window.clearInterval(this.timer);
@@ -323,6 +426,40 @@ createApp({
         },
         closeMetricModal() {
             this.metricModalVisible = false;
+        },
+        getLiquidNodeStyle(index, total, value) {
+            const isInner = index < 6;
+            const radius = isInner ? 160 : 300;
+            const count = isInner ? Math.min(6, total) : total - 6;
+            const posIndex = isInner ? index : index - 6;
+            const angle = (posIndex * (360 / count) - 90) * (Math.PI / 180);
+
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+
+            let color = '#00ff88';
+            let shadow = 'rgba(0, 255, 136, 0.4)';
+            if (value < 70) { color = '#ff2a2a'; shadow = 'rgba(255, 42, 42, 0.4)'; }
+            else if (value < 80) { color = '#ffb800'; shadow = 'rgba(255, 184, 0, 0.4)'; }
+            else if (value < 90) { color = '#00f3ff'; shadow = 'rgba(0, 243, 255, 0.4)'; }
+
+            return {
+                transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+                borderColor: color,
+                boxShadow: `0 0 15px ${shadow}, inset 0 0 20px ${shadow}`
+            };
+        },
+        getLiquidWaterStyle(value, isDelay = false) {
+            let color = 'rgba(0, 255, 136, 0.6)';
+            if (value < 70) { color = 'rgba(255, 42, 42, 0.6)'; }
+            else if (value < 80) { color = 'rgba(255, 184, 0, 0.6)'; }
+            else if (value < 90) { color = 'rgba(0, 243, 255, 0.6)'; }
+
+            return {
+                top: `calc(${100 - value}% - 140px)`,
+                backgroundColor: color,
+                animationDelay: isDelay ? '-3s' : '0s'
+            };
         },
         renderOrgChart() {
             const chart = this.ensureChart('orgChart', 'org-chart-container');
@@ -577,7 +714,10 @@ createApp({
             } else {
                 this.renderHospitalAlertChart();
                 this.renderHospitalResponseChart();
-                this.renderHospitalTimeoutChart();
+                this.renderHospitalClosureTimeoutChart();
+                this.renderHospitalTicketChart();
+                this.renderHospitalResourceChart();
+                this.renderHospitalTopologyChart();
             }
         },
         renderLeftChart1() {
@@ -968,12 +1108,32 @@ createApp({
             const chart = this.ensureChart('hospitalAlert', 'hospital-alert-chart');
             if (!chart) return;
             const rangeLabel = this.selectedRange === '7d' ? '近 7 天' : this.selectedRange === 'custom' ? '自定义周期' : '近 30 天口径展示近 7 日走势';
+
+            const last7Days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                last7Days.push(`${d.getMonth() + 1}-${d.getDate()}`);
+            }
+
+            // 根据选中的告警级别进行数据折算 (模拟筛选变化)
+            let multiplier = 0;
+            if (this.selectedAlertLevels.includes('P0')) multiplier += 0.4;
+            if (this.selectedAlertLevels.includes('P1')) multiplier += 0.3;
+            if (this.selectedAlertLevels.includes('P2')) multiplier += 0.2;
+            if (this.selectedAlertLevels.includes('P3')) multiplier += 0.1;
+
+            // 如果全部都没选，默认展示0
+            if (multiplier === 0) multiplier = 0;
+
+            const filteredData = (this.selectedHospital.alertTrend || []).map(val => Math.round(val * multiplier));
+
             chart.setOption({
                 tooltip: { trigger: 'axis' },
                 grid: { left: 45, right: 20, top: 35, bottom: 30 },
                 xAxis: {
                     type: 'category',
-                    data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                    data: last7Days,
                     axisLabel: { color: '#86a6bc' },
                     axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
                 },
@@ -987,7 +1147,7 @@ createApp({
                     type: 'line',
                     smooth: true,
                     symbolSize: 9,
-                    data: this.selectedHospital.alertTrend,
+                    data: filteredData,
                     lineStyle: { color: '#7de7ff', width: 3 },
                     itemStyle: { color: '#7de7ff' },
                     areaStyle: {
@@ -995,11 +1155,6 @@ createApp({
                             { offset: 0, color: 'rgba(125, 231, 255, 0.38)' },
                             { offset: 1, color: 'rgba(125, 231, 255, 0.02)' }
                         ])
-                    },
-                    markPoint: {
-                        symbolSize: 54,
-                        data: [{ type: 'max', name: '峰值' }],
-                        label: { color: '#04131d', fontWeight: 700 }
                     }
                 }]
             });
@@ -1007,12 +1162,81 @@ createApp({
         renderHospitalResponseChart() {
             const chart = this.ensureChart('hospitalResponse', 'hospital-response-chart');
             if (!chart) return;
+
+            const last7Days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                last7Days.push(`${d.getMonth() + 1}-${d.getDate()}`);
+            }
+
+            // 根据选择的级别调整模拟数据和SLA基线
+            let multiplier = 1;
+            let slaBaselineMtta = null;
+            let slaBaselineMttr = null;
+            if (this.selectedResponseLevel === 'P0') { multiplier = 0.4; slaBaselineMtta = 10; slaBaselineMttr = 30; }
+            else if (this.selectedResponseLevel === 'P1') { multiplier = 0.6; slaBaselineMtta = 15; slaBaselineMttr = 60; }
+            else if (this.selectedResponseLevel === 'P2') { multiplier = 1.2; slaBaselineMtta = 30; slaBaselineMttr = 120; }
+            else if (this.selectedResponseLevel === 'P3') { multiplier = 2.0; slaBaselineMtta = 60; slaBaselineMttr = 240; }
+
+            // 模拟 MTTR (恢复时长) 数据，通常比 MTTA (响应时长) 长
+            const baseMtta = this.selectedHospital.responseTrend || [10, 12, 11, 15, 10, 9, 8];
+            const mttaData = baseMtta.map(val => Math.max(1, Math.round(val * multiplier)));
+            const mttrData = mttaData.map(val => val * 3 + Math.floor(Math.random() * 10));
+
+            const legendData = ['平均响应时长 (MTTA)', '平均恢复时长 (MTTR)'];
+
+            const seriesConfig = [
+                {
+                    name: '平均响应时长 (MTTA)',
+                    type: 'line',
+                    smooth: true,
+                    data: mttaData,
+                    lineStyle: { color: '#36d8c6', width: 3 },
+                    itemStyle: { color: '#36d8c6' },
+                    symbolSize: 8,
+                    areaStyle: { color: 'rgba(62, 214, 198, 0.12)' }
+                },
+                {
+                    name: '平均恢复时长 (MTTR)',
+                    type: 'line',
+                    smooth: true,
+                    data: mttrData,
+                    lineStyle: { color: '#a03fe8', width: 3 },
+                    itemStyle: { color: '#a03fe8' },
+                    symbolSize: 8,
+                    areaStyle: { color: 'rgba(160, 63, 232, 0.12)' }
+                }
+            ];
+
+            if (slaBaselineMtta) {
+                seriesConfig.push({
+                    name: '响应 SLA 基线',
+                    type: 'line',
+                    data: Array(last7Days.length).fill(slaBaselineMtta),
+                    symbol: 'none',
+                    lineStyle: { color: 'rgba(54, 216, 198, 0.4)', width: 2, type: 'dashed' }
+                });
+                seriesConfig.push({
+                    name: '恢复 SLA 基线',
+                    type: 'line',
+                    data: Array(last7Days.length).fill(slaBaselineMttr),
+                    symbol: 'none',
+                    lineStyle: { color: 'rgba(160, 63, 232, 0.4)', width: 2, type: 'dashed' } // 与恢复时长同色系，降低可见度
+                });
+            }
+
             chart.setOption({
                 tooltip: { trigger: 'axis' },
+                legend: {
+                    data: legendData,
+                    textStyle: { color: '#86a6bc' },
+                    top: 0
+                },
                 grid: { left: 45, right: 20, top: 35, bottom: 30 },
                 xAxis: {
                     type: 'category',
-                    data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                    data: last7Days,
                     axisLabel: { color: '#86a6bc' },
                     axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
                 },
@@ -1021,66 +1245,410 @@ createApp({
                     axisLabel: { color: '#86a6bc', formatter: '{value} 分' },
                     splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
                 },
-                series: [
+                series: seriesConfig
+            }, true);
+        },
+        renderHospitalClosureTimeoutChart() {
+            const chart = this.ensureChart('hospitalClosureTimeout', 'hospital-closure-timeout-chart');
+            if (!chart) return;
+
+            const last7Days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                last7Days.push(`${d.getMonth() + 1}-${d.getDate()}`);
+            }
+
+            // Mock Data for 7 days
+            const closureRates = [94, 95, 96.5, 94.8, 97.2, 96.8, 98.1];
+            const timeoutRates = [5.2, 4.8, 4.1, 5.1, 3.8, 4.2, 3.4];
+
+            chart.setOption({
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function (params) {
+                        return params[0].name + '<br/>' +
+                            params[0].seriesName + ': ' + params[0].value + '%<br/>' +
+                            params[1].seriesName + ': ' + params[1].value + '%';
+                    }
+                },
+                legend: {
+                    data: ['闭环率', '超时率'],
+                    textStyle: { color: '#86a6bc' },
+                    top: 0
+                },
+                grid: { left: 45, right: 45, top: 35, bottom: 30 },
+                xAxis: {
+                    type: 'category',
+                    data: last7Days,
+                    axisLabel: { color: '#86a6bc' },
+                    axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
+                },
+                yAxis: [
                     {
-                        name: '平均响应时长',
-                        type: 'line',
-                        smooth: true,
-                        data: this.selectedHospital.responseTrend,
-                        lineStyle: { color: '#36d8c6', width: 3 },
-                        itemStyle: { color: '#36d8c6' },
-                        symbolSize: 8,
-                        areaStyle: { color: 'rgba(62, 214, 198, 0.12)' }
+                        type: 'value',
+                        name: '闭环率(%)',
+                        nameTextStyle: { color: '#86a6bc' },
+                        min: 90,
+                        max: 100,
+                        axisLabel: { color: '#86a6bc', formatter: '{value}' },
+                        splitLine: { show: false }
                     },
                     {
-                        name: 'SLA 基线',
+                        type: 'value',
+                        name: '超时率(%)',
+                        nameTextStyle: { color: '#86a6bc' },
+                        min: 0,
+                        max: 10,
+                        axisLabel: { color: '#86a6bc', formatter: '{value}' },
+                        splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
+                    }
+                ],
+                series: [
+                    {
+                        name: '闭环率',
                         type: 'line',
-                        data: [15, 15, 15, 15, 15, 15, 15],
-                        symbol: 'none',
-                        lineStyle: { color: '#ff6a6a', width: 2, type: 'dashed' }
+                        smooth: true,
+                        data: closureRates,
+                        lineStyle: { color: '#00f3ff', width: 3 },
+                        itemStyle: { color: '#00f3ff' },
+                        symbolSize: 8,
+                        areaStyle: { color: 'rgba(0, 243, 255, 0.12)' },
+                        yAxisIndex: 0
+                    },
+                    {
+                        name: '超时率',
+                        type: 'line',
+                        smooth: true,
+                        data: timeoutRates,
+                        lineStyle: { color: '#ffcc00', width: 3 },
+                        itemStyle: { color: '#ffcc00' },
+                        symbolSize: 8,
+                        yAxisIndex: 1
                     }
                 ]
             });
         },
-        renderHospitalTimeoutChart() {
-            const chart = this.ensureChart('hospitalTimeout', 'hospital-timeout-chart');
+        renderHospitalTicketChart() {
+            const chart = this.ensureChart('hospitalTicket', 'hospital-ticket-chart');
             if (!chart) return;
+
+            let multiplier = 1;
+            if (this.selectedTicketStatus === '未分派') multiplier = 0.15;
+            else if (this.selectedTicketStatus === '处理中') multiplier = 0.4;
+            else if (this.selectedTicketStatus === '待审核') multiplier = 0.2;
+            else if (this.selectedTicketStatus === '已关闭') multiplier = 0.25;
+
+            const baseData = [
+                { value: 89, name: '事件', itemStyle: { color: '#ff6a6a' } },
+                { value: 65, name: '请求', itemStyle: { color: '#00f3ff' } },
+                { value: 24, name: '问题', itemStyle: { color: '#ffcc00' } },
+                { value: 30, name: '变更', itemStyle: { color: '#36d8c6' } },
+                { value: 12, name: '发布', itemStyle: { color: '#a03fe8' } },
+                { value: 45, name: '巡检', itemStyle: { color: '#85ff53' } }
+            ];
+
+            const data = baseData.map(item => ({
+                ...item,
+                value: Math.max(1, Math.round(item.value * multiplier))
+            }));
+
             chart.setOption({
-                tooltip: { trigger: 'axis' },
-                grid: { left: 45, right: 20, top: 35, bottom: 30 },
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: 40, right: 20, top: 30, bottom: 25 },
                 xAxis: {
                     type: 'category',
-                    data: ['1 月', '2 月', '3 月'],
-                    axisLabel: { color: '#86a6bc' },
-                    axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
+                    data: data.map(item => item.name),
+                    axisLabel: { color: '#86a6bc', fontSize: 12 },
+                    axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } },
+                    axisTick: { show: false }
                 },
                 yAxis: {
                     type: 'value',
-                    axisLabel: { color: '#86a6bc', formatter: '{value}%' },
+                    axisLabel: { color: '#86a6bc' },
                     splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
                 },
                 series: [
                     {
-                        name: '超时率',
+                        name: '工单数量',
                         type: 'bar',
-                        barWidth: 26,
-                        data: this.selectedHospital.timeoutTrend,
+                        barWidth: 15,
                         itemStyle: {
-                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                { offset: 0, color: '#ffca63' },
-                                { offset: 1, color: '#ff8e54' }
-                            ]),
-                            borderRadius: [10, 10, 0, 0]
+                            borderRadius: [4, 4, 0, 0]
+                        },
+                        label: {
+                            show: true,
+                            position: 'top',
+                            color: '#fff',
+                            fontSize: 12
+                        },
+                        data: data.map(item => ({
+                            value: item.value,
+                            itemStyle: item.itemStyle
+                        }))
+                    }
+                ]
+            });
+        },
+        renderHospitalResourceChart() {
+            const chart = this.ensureChart('hospitalResource', 'hospital-resource-chart');
+            if (!chart) return;
+
+            chart.setOption({
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: 65, right: 35, top: 15, bottom: 20 },
+                xAxis: {
+                    type: 'value',
+                    max: 100,
+                    axisLabel: { color: '#86a6bc', formatter: '{value}%' },
+                    splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: ['存储使用', '内存分配', 'CPU 使用率'],
+                    axisLabel: { color: '#86a6bc' },
+                    axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } },
+                    inverse: true
+                },
+                series: [
+                    {
+                        name: '使用率',
+                        type: 'bar',
+                        barWidth: 15,
+                        data: [
+                            { value: 45, itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: '#36d8c6' }, { offset: 1, color: 'rgba(54, 216, 198, 0.1)' }]) } },
+                            { value: 82, itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: '#ffcc00' }, { offset: 1, color: 'rgba(255, 204, 0, 0.1)' }]) } },
+                            { value: 65, itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: '#00f3ff' }, { offset: 1, color: 'rgba(0, 243, 255, 0.1)' }]) } }
+                        ],
+                        label: {
+                            show: true,
+                            position: 'right',
+                            color: '#fff',
+                            formatter: '{c}%'
+                        }
+                    }
+                ]
+            });
+        },
+        renderHospitalTopologyChart() {
+            const chart = this.ensureChart('hospitalTopology', 'hospital-topology-chart');
+            if (!chart) return;
+
+            // 绑定双击事件显示告警详情弹窗
+            chart.off('dblclick');
+            chart.on('dblclick', (params) => {
+                if (params.data && params.data.name !== '中心系统' && params.seriesName !== 'labels') {
+                    this.systemAlertModalVisible = true;
+                }
+            });
+
+            const dataNodes = this.centerNodes || [];
+            if (dataNodes.length === 0) return;
+
+            // 如果节点数量特别大（例如170个），切换展示方式：点阵蜂窝/散点图布局
+            if (dataNodes.length > 50) {
+                const scatterDataNormal = [];
+                const scatterDataWarn = [];
+                const labelData = [];
+
+                // 提取所有的业务类别并建立区块索引（简单分为 4 列网格）
+                const categories = [...new Set(dataNodes.map(n => n.category || '其他'))];
+                const catLayout = {};
+                categories.forEach((cat, index) => {
+                    catLayout[cat] = {
+                        col: index % 4,
+                        row: Math.floor(index / 4)
+                    };
+                });
+
+                const groupedNodes = {};
+                dataNodes.forEach(node => {
+                    const cat = node.category || '其他';
+                    if (!groupedNodes[cat]) groupedNodes[cat] = [];
+                    groupedNodes[cat].push(node);
+                });
+
+                for (const cat in groupedNodes) {
+                    const layout = catLayout[cat];
+                    const nodes = groupedNodes[cat];
+
+                    // 每个业务区块的基本左上角坐标（这里定义物理坐标网格）
+                    const baseX = layout.col * 100;
+                    const baseY = -layout.row * 100;
+
+                    // 添加该业务模块的标题文本
+                    labelData.push({
+                        name: cat,
+                        value: [baseX + 45, baseY + 10], // X居中，Y偏上
+                        symbolSize: 1,
+                        itemStyle: { color: 'transparent' },
+                        label: {
+                            show: true,
+                            formatter: '{b}',
+                            position: 'center',
+                            color: '#00f3ff',
+                            fontSize: 14,
+                            fontWeight: 'bold'
+                        }
+                    });
+
+                    // 在该业务区块内计算内部小节点的排列（按子网格）
+                    const subCols = Math.ceil(Math.sqrt(nodes.length)); // 自适应子列数
+                    const maxSubCols = Math.max(subCols, 1);
+                    const gapX = 85 / maxSubCols;
+                    const gapY = 70 / Math.max(Math.ceil(nodes.length / maxSubCols), 1);
+
+                    nodes.forEach((node, i) => {
+                        const sc = i % maxSubCols;
+                        const sr = Math.floor(i / maxSubCols);
+                        const isError = node.value < 85;
+
+                        // 横纵坐标偏移量计算
+                        const px = baseX + 5 + sc * gapX + (gapX / 2);
+                        const py = baseY - 15 - sr * gapY;
+
+                        const pt = {
+                            name: node.name,
+                            category: cat,
+                            value: [px, py, node.value],
+                            itemStyle: {
+                                color: isError ? '#ff2a2a' : new echarts.graphic.RadialGradient(0.5, 0.5, 0.5, [{
+                                    offset: 0, color: '#afffd8'
+                                }, {
+                                    offset: 1, color: '#00ff88'
+                                }]),
+                                shadowBlur: isError ? 20 : 15,
+                                shadowColor: isError ? '#ff2a2a' : '#00ff88',
+                                opacity: 0.9
+                            },
+                            symbolSize: isError ? 16 : 12,
+                        };
+
+                        if (isError) scatterDataWarn.push(pt);
+                        else scatterDataNormal.push(pt);
+                    });
+                }
+
+                chart.clear();
+                chart.setOption({
+                    tooltip: {
+                        formatter: function (params) {
+                            if (params.seriesName === 'labels') return '';
+                            return `${params.data.category} - ${params.data.name} <br/>健康度: ${params.data.value[2]}`;
                         }
                     },
+                    grid: { left: 40, right: 40, top: 40, bottom: 20 },
+                    xAxis: { show: false, min: -10, max: 400 },
+                    yAxis: { show: false, min: -320, max: 20 },
+                    series: [
+                        {
+                            name: 'labels',
+                            type: 'scatter',
+                            data: labelData,
+                            symbol: 'rect',
+                            silent: true // 忽略鼠标事件
+                        },
+                        {
+                            type: 'effectScatter',
+                            data: scatterDataNormal,
+                            symbol: 'circle',
+                            rippleEffect: { brushType: 'fill', scale: 2.5, period: 5 },
+                            itemStyle: { opacity: 0.8 }
+                        },
+                        {
+                            type: 'effectScatter',
+                            data: scatterDataWarn,
+                            symbol: 'circle',
+                            rippleEffect: { brushType: 'stroke', scale: 4, period: 2 },
+                            zlevel: 2
+                        }
+                    ]
+                });
+                return;
+            }
+
+            const nodes = [];
+            const links = [];
+            const effectData = [];
+
+            nodes.push({
+                name: '中心系统',
+                value: [0, 0],
+                symbolSize: 70,
+                itemStyle: { color: '#00f3ff' },
+                label: { show: true, position: 'bottom', color: '#fff', fontSize: 14, fontWeight: 'bold' }
+            });
+
+            const angleStep = (Math.PI * 2) / dataNodes.length;
+            const radius = 100;
+
+            dataNodes.forEach((node, i) => {
+                const angle = i * angleStep;
+                const isError = node.value < 85;
+
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+
+                nodes.push({
+                    name: node.name,
+                    value: [x, y, node.value],
+                    symbolSize: 45,
+                    itemStyle: {
+                        color: isError ? '#ff2a2a' : '#00ff88',
+                    },
+                    label: { show: true, position: 'top', color: '#fff', fontSize: 12 }
+                });
+
+                links.push({
+                    source: '中心系统',
+                    target: node.name,
+                    lineStyle: {
+                        color: isError ? '#ff2a2a' : '#00ff88',
+                        width: isError ? 2 : 1,
+                        curveness: 0.2
+                    }
+                });
+
+                if (isError) {
+                    effectData.push({
+                        name: node.name,
+                        value: [x, y, node.value],
+                        symbolSize: 55,
+                        itemStyle: { color: '#ff2a2a' },
+                        tooltip: { formatter: node.name + ' (异常)' }
+                    });
+                }
+            });
+
+            chart.clear();
+            chart.setOption({
+                tooltip: {
+                    formatter: function (params) {
+                        return params.data && params.data.name ? (params.data.name + (params.data.value && params.data.value[2] ? ('<br/>健康度: ' + params.data.value[2]) : '')) : '';
+                    }
+                },
+                xAxis: { show: false, min: -150, max: 150 },
+                yAxis: { show: false, min: -150, max: 150 },
+                series: [
                     {
-                        name: '改善趋势',
-                        type: 'line',
-                        smooth: true,
-                        data: this.selectedHospital.timeoutTrend,
-                        lineStyle: { color: '#7de7ff', width: 3 },
-                        itemStyle: { color: '#7de7ff' },
-                        symbolSize: 8
+                        type: 'graph',
+                        coordinateSystem: 'cartesian2d',
+                        data: nodes,
+                        links: links,
+                        roam: true,
+                        label: { show: true },
+                        lineStyle: { opacity: 0.6 }
+                    },
+                    {
+                        type: 'effectScatter',
+                        coordinateSystem: 'cartesian2d',
+                        data: effectData,
+                        rippleEffect: {
+                            brushType: 'stroke',
+                            scale: 2.5
+                        },
+                        label: { show: false },
+                        zlevel: 1
                     }
                 ]
             });

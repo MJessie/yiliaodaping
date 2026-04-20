@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -17,128 +17,244 @@
             <header class="topbar-scifi">
                 <div class="topbar-center">
                     <div class="center-bg"></div>
-                    <h1>{{ selectedHospital.name }} 成效展示大屏</h1>
+                    <h1>{{ selectedHospital.name }}</h1>
                     <p>{{ currentTime }}</p>
                 </div>
             </header>
 
-            <section class="view">
-                <div class="page-subtitle">
-                    <h2>{{ selectedHospital.name }} · 单院运维成效视图</h2>
-                    <button class="ghost-button" @click="switchView('hq')">返回总部总览</button>
-                </div>
-
-                <div class="summary-grid">
-                    <article v-for="card in hospitalCards" :key="card.label" class="metric-card"
-                        :class="card.tone ? 'tone-' + card.tone : ''">
-                        <div class="label">{{ card.label }}</div>
-                        <div class="value">{{ card.value }}</div>
-                        <div class="subline">
-                            <span>{{ card.note }}</span>
-                            <span class="trend" :class="trendClass(card.trendDirection, card.trendGood)">
-                                <span>{{ card.trendDirection === 'up' ? '↑' : '↓' }}</span>
-                                <span>{{ card.trendText }}</span>
-                            </span>
-                        </div>
-                    </article>
-                </div>
-
-                <div class="hospital-layout">
-                    <section class="panel">
+            <section class="view layout-3d">
+                <div class="left-col" style="display: flex; flex-direction: column; gap: 20px;">
+                    <section class="panel flex-1">
                         <div class="panel-header">
                             <div>
                                 <h3>近 7 天告警趋势分析</h3>
                             </div>
-                            <div class="panel-badge">{{ selectedHospital.city }}</div>
+                            <div style="display: flex; gap: 6px; margin-right: 15px;">
+                                <div v-for="lvl in ['P0', 'P1', 'P2', 'P3']" :key="lvl" @click="toggleAlertLevel(lvl)"
+                                    :style="{
+                                         cursor: 'pointer', padding: '2px 8px', fontSize: '12px', borderRadius: '4px',
+                                         backgroundColor: selectedAlertLevels.includes(lvl) ? 'rgba(0, 243, 255, 0.15)' : 'transparent',
+                                         border: '1px solid ' + (selectedAlertLevels.includes(lvl) ? '#00f3ff' : 'rgba(134, 166, 188, 0.3)'),
+                                         color: selectedAlertLevels.includes(lvl) ? '#00f3ff' : '#86a6bc',
+                                         userSelect: 'none', transition: 'all 0.2s'
+                                     }">
+                                    {{ lvl }}
+                                </div>
+                            </div>
                         </div>
                         <div id="hospital-alert-chart" class="chart"></div>
                     </section>
 
-                    <section class="panel">
+                    <section class="panel flex-1">
                         <div class="panel-header">
                             <div>
-                                <h3>近 7 天 MTTA 响应趋势</h3>
+                                <h3>近 7 天 MTTA/MTTR </h3>
                             </div>
-                            <div class="panel-badge">目标 SLA 15 分钟</div>
+                            <div style="display: flex; gap: 6px; margin-right: 15px;">
+                                <div v-for="lvl in ['全部', 'P0', 'P1', 'P2', 'P3']" :key="lvl"
+                                    @click="selectedResponseLevel = lvl" :style="{
+                                         cursor: 'pointer', padding: '2px 8px', fontSize: '12px', borderRadius: '4px',
+                                         backgroundColor: selectedResponseLevel === lvl ? 'rgba(54, 216, 198, 0.15)' : 'transparent',
+                                         border: '1px solid ' + (selectedResponseLevel === lvl ? '#36d8c6' : 'rgba(134, 166, 188, 0.3)'),
+                                         color: selectedResponseLevel === lvl ? '#36d8c6' : '#86a6bc',
+                                         userSelect: 'none', transition: 'all 0.2s'
+                                     }">
+                                    {{ lvl }}
+                                </div>
+                            </div>
                         </div>
                         <div id="hospital-response-chart" class="chart"></div>
                     </section>
-                </div>
 
-                <div class="compare-grid">
-                    <article v-for="item in compareCards" :key="item.label" class="compare-card">
-                        <div class="compare-label">{{ item.label }}</div>
-                        <div class="compare-value">{{ item.value }}</div>
-                        <div class="small-note">{{ item.period }}</div>
-                        <div class="delta" :class="item.good ? 'good' : 'bad'">
-                            <span>{{ item.direction === 'up' ? '↑' : '↓' }}</span>
-                            <span>{{ item.delta }}</span>
-                        </div>
-                    </article>
-                </div>
-
-                <div class="hospital-layout">
-                    <section class="panel">
+                    <section class="panel flex-1">
                         <div class="panel-header">
                             <div>
-                                <h3>超时率 3 个月变化趋势</h3>
+                                <h3>近 7 天闭环率与超时率</h3>
                             </div>
-                            <div class="panel-badge">按月统计</div>
                         </div>
-                        <div id="hospital-timeout-chart" class="chart"></div>
-                    </section>
-
-                    <section class="panel">
-                        <div class="panel-header">
-                            <div>
-                                <h3>运维运营成效亮点</h3>
-                            </div>
-                            <div class="panel-badge">管理价值输出</div>
-                        </div>
-                        <div class="insight-grid">
-                            <article class="story-card">
-                                <div class="story-meta"><span>重大故障避免</span></div>
-                                <div class="highlight-value">{{ selectedHospital.preventedMajor }}</div>
-                                <p>通过提前告警、主动处置和夜间巡检，本周期共阻断 {{ selectedHospital.preventedMajor }} 次潜在重大故障升级。</p>
-                                <div class="highlight-foot">主动运维贡献度高于上周期 {{ selectedHospital.preventedMajorDelta }}
-                                </div>
-                            </article>
-                            <article class="story-card">
-                                <div class="story-meta"><span>夜间值班保障</span></div>
-                                <div class="highlight-value">{{ selectedHospital.nightRate }}</div>
-                                <p>夜班时段 22:00-06:00 告警响应达标率保持高位，满足院领导对核心系统夜间稳定运行要求。</p>
-                                <div class="highlight-foot">夜班值班体系稳定，连续 {{ selectedHospital.nightStableDays }} 天无严重漏响
-                                </div>
-                            </article>
-                            <article class="story-card">
-                                <div class="story-meta"><span>闭环效率</span></div>
-                                <div class="highlight-value">{{ selectedHospital.closureRate }}</div>
-                                <p>工单闭环率持续高于集团基线，告警响应链路完整处理迅速，有效支持了临床科室的工作效率。</p>
-                                <div class="highlight-foot">本月较上月 {{ selectedHospital.closureDelta }}</div>
-                            </article>
-                        </div>
+                        <div id="hospital-closure-timeout-chart" class="chart"></div>
                     </section>
                 </div>
 
-                <div class="signal-grid">
-                    <article class="signal-card">
-                        <h4>系统稳定性说明</h4>
-                        <div class="mini-tags"><span>核心系统可用率</span><span>{{ selectedHospital.availability }}</span>
+                <div class="center-col">
+                    <div class="page-subtitle"
+                        style="position: absolute; top: 10px; left: 10px; right: 10px; z-index: 10; justify-content: flex-end;">
+                        <button class="ghost-button" @click="switchView('hq')">返回总部总览</button>
+                    </div>
+
+                    <div class="center-app-topology"
+                        style="border: none; background: transparent; height: 100%; box-shadow: none; margin-top: 60px; display: flex; flex-direction: column;">
+
+                        <div class="topology-stats">
+                            <div class="stat-item">
+                                <div class="stat-val">{{ centerNodes ? centerNodes.length : 0 }}</div>
+                                <div class="stat-lbl">应用总数</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-val good">{{ centerNodes ? centerNodes.filter(n => n.value >= 85).length : 0 }}</div>
+                                <div class="stat-lbl">正常</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-val warn">{{ centerNodes ? centerNodes.filter(n => n.value < 85).length : 0 }}</div>
+                                <div class="stat-lbl">异常</div>
+                            </div>
                         </div>
-                        <p>近 30 天关键业务系统整体稳定，放疗、影像及门诊接口可用率维持在高位，未发生影响核心医疗业务的系统级故障。</p>
-                    </article>
-                    <article class="signal-card">
-                        <h4>值班与响应说明</h4>
-                        <div class="mini-tags"><span>平均响应</span><span>{{ selectedHospital.responseAvg }}</span></div>
-                        <p>晚间核心系统依赖值班群组告警监控和自动升级策略，当前平均响应时长及恢复时间均优于集团 SLA 考核基线。</p>
-                    </article>
-                    <article class="signal-card">
-                        <h4>管理建议</h4>
-                        <div class="mini-tags"><span>建议方向</span><span>{{ selectedHospital.suggestionTag }}</span></div>
-                        <p>{{ selectedHospital.suggestion }}</p>
-                    </article>
+
+                        <div id="hospital-topology-chart"
+                            style="width: 100%; flex: 1; min-height: 500px; margin-top: 20px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right-col" style="display: flex; flex-direction: column; gap: 20px;">
+                    <section class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>值班人员</h3>
+                            </div>
+                        </div>
+                        <div
+                            style="padding: 10px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                            <div v-for="(person, idx) in dutyPersonnel" :key="idx"
+                                style="padding: 12px; background: rgba(0, 243, 255, 0.05); border: 1px solid rgba(0, 243, 255, 0.2); border-radius: 8px; display: flex; align-items: center;">
+                                <div style="flex: 1;">
+                                    <div
+                                        style="color: #fff; font-size: 14px; font-weight: bold; margin-bottom: 4px;">
+                                        {{ person.name }}
+                                        <span
+                                            style="font-size: 12px; color: #00f3ff; margin-left: 8px; font-weight: normal;">{{ person.role }}</span>
+                                    </div>
+                                    <div style="color: #86a6bc; font-size: 12px;">联系方式: {{ person.phone }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="panel flex-1">
+                        <div class="panel-header" style="justify-content: space-between;">
+                            <div>
+                                <h3>运维工单</h3>
+                            </div>
+                            <div style="display: flex; gap: 6px; margin-right: 15px;">
+                                <div v-for="status in ['未响应', '处理中', '已关闭', '全部']" :key="status"
+                                    @click="selectedTicketStatus = status" :style="{
+                                        cursor: 'pointer', padding: '2px 8px', fontSize: '12px', borderRadius: '4px',
+                                        backgroundColor: selectedTicketStatus === status ? 'rgba(0, 243, 255, 0.15)' : 'transparent',
+                                        border: '1px solid ' + (selectedTicketStatus === status ? '#00f3ff' : 'rgba(134, 166, 188, 0.3)'),
+                                        color: selectedTicketStatus === status ? '#00f3ff' : '#86a6bc',
+                                        userSelect: 'none', transition: 'all 0.2s'
+                                    }">
+                                    {{ status }}
+                                </div>
+                            </div>
+                        </div>
+                        <div id="hospital-ticket-chart" class="chart"></div>
+                    </section>
+
+                    <section class="panel flex-1">
+                        <div class="panel-header">
+                            <div>
+                                <h3>基础环境资源统计</h3>
+                            </div>
+                        </div>
+                        <div id="hospital-resource-chart" class="chart"></div>
+                    </section>
                 </div>
             </section>
+
+            <!-- 弹出层：服务告警详情与历史 -->
+            <div v-show="systemAlertModalVisible" class="modal-overlay" style="display:flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(7, 19, 32, 0.85); justify-content: center; align-items: center; z-index: 1000;"
+                @click.self="systemAlertModalVisible = false">
+                <div class="modal-content" style="width: 800px; max-height: 80vh; background: rgba(11, 28, 47, 0.95); border: 1px solid #16567e; border-radius: 8px; box-shadow: 0 0 30px rgba(0, 243, 255, 0.3); display: flex; flex-direction: column;">
+                    
+                    <!-- 头部与 Tabs -->
+                    <div class="modal-header" style="height: 50px; background: rgba(0, 243, 255, 0.1); border-bottom: 1px solid #16567e; display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
+                        <h3 style="color: #fff; font-size: 16px; margin: 0; flex: 1;">告警详情与历史 - {{ selectedHospital.name }}</h3>
+                        
+                        <div style="display: flex; gap: 10px; flex: 1; justify-content: center;">
+                            <div @click="alertModalActiveTab = 'active'; alertActivePage = 1" :style="{ padding: '5px 15px', color: '#fff', fontSize: '14px', cursor: 'pointer', borderBottom: alertModalActiveTab === 'active' ? '2px solid #00f3ff' : 'none' }">
+                                活动告警 (处理中)
+                            </div>
+                            <div @click="alertModalActiveTab = 'history'; alertHistoryPage = 1" :style="{ padding: '5px 15px', color: '#fff', fontSize: '14px', cursor: 'pointer', borderBottom: alertModalActiveTab === 'history' ? '2px solid #00f3ff' : 'none' }">
+                                历史告警 (已恢复)
+                            </div>
+                        </div>
+
+                        <div style="flex: 1; text-align: right;">
+                            <button @click="systemAlertModalVisible = false" style="background: none; border: none; color: #5e8baf; font-size: 24px; cursor: pointer;">×</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 主体内容 -->
+                    <div class="modal-body" style="flex: 1; padding: 20px; overflow-y: auto;">
+                        
+                        <!-- 活动告警 Tab -->
+                        <div v-show="alertModalActiveTab === 'active'">
+                            <table style="width: 100%; border-collapse: collapse; color: #fff; font-size: 13px;">
+                                <thead>
+                                    <tr style="background: rgba(22, 86, 126, 0.5);">
+                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 100px;">告警ID</th>
+                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 80px;">级别</th>
+                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e;">告警内容</th>
+                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 100px;">发生时间</th>
+                                        <th style="padding: 10px; text-align: center; border-bottom: 1px solid #16567e; width: 80px;">状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="alert in pagedActiveAlerts" :key="alert.id">
+                                        <td style="padding: 10px; border-bottom: 1px solid #16567e; color: #5e8baf;">#{{ alert.id }}</td>
+                                        <td style="padding: 10px; border-bottom: 1px solid #16567e;">
+                                            <span :style="{ color: alert.level === 'P1' ? '#ff6a6a' : '#ffca63' }">{{ alert.level }}</span>
+                                        </td>
+                                        <td style="padding: 10px; border-bottom: 1px solid #16567e;">{{ alert.content }}</td>
+                                        <td style="padding: 10px; border-bottom: 1px solid #16567e; color: #5e8baf;">{{ alert.time }}</td>
+                                        <td style="padding: 10px; border-bottom: 1px solid #16567e; text-align: center;"><span style="color: #ffca63;">{{ alert.status }}</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <!-- 分页 -->
+                            <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 15px; color: #5e8baf; font-size: 13px;">
+                                <button @click="alertActivePage--" :disabled="alertActivePage === 1" style="margin-right: 10px; background: rgba(22, 86, 126, 0.5); border: 1px solid #16567e; color: #fff; padding: 4px 8px; cursor: pointer; border-radius: 4px;">&lt; 上一页</button>
+                                <span>第 {{ alertActivePage }} / {{ activeAlertsTotalPages }} 页</span>
+                                <button @click="alertActivePage++" :disabled="alertActivePage === activeAlertsTotalPages" style="margin-left: 10px; background: rgba(22, 86, 126, 0.5); border: 1px solid #16567e; color: #fff; padding: 4px 8px; cursor: pointer; border-radius: 4px;">下一页 &gt;</button>
+                            </div>
+                        </div>
+
+                        <!-- 历史告警 Tab -->
+                        <div v-show="alertModalActiveTab === 'history'">
+                            <table style="width: 100%; border-collapse: collapse; color: #fff; font-size: 13px;">
+                                <thead>
+                                    <tr style="background: rgba(22, 86, 126, 0.5);">
+                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 100px;">告警ID</th>
+                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 80px;">级别</th>
+                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e;">告警内容</th>
+                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 100px;">恢复时间</th>
+                                        <th style="padding: 10px; text-align: center; border-bottom: 1px solid #16567e; width: 80px;">状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="alert in pagedHistoryAlerts" :key="alert.id">
+                                        <td style="padding: 10px; border-bottom: 1px solid #16567e; color: #5e8baf;">#{{ alert.id }}</td>
+                                        <td style="padding: 10px; border-bottom: 1px solid #16567e;">
+                                            <span :style="{ color: alert.level === 'P1' ? '#ff6a6a' : (alert.level === 'P2' ? '#ffca63' : '#3ed6c6') }">{{ alert.level }}</span>
+                                        </td>
+                                        <td style="padding: 10px; border-bottom: 1px solid #16567e;">{{ alert.content }}</td>
+                                        <td style="padding: 10px; border-bottom: 1px solid #16567e; color: #5e8baf;">{{ alert.time }}</td>
+                                        <td style="padding: 10px; border-bottom: 1px solid #16567e; text-align: center;"><span style="color: #3ed6c6;">{{ alert.status }}</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <!-- 分页 -->
+                            <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 15px; color: #5e8baf; font-size: 13px;">
+                                <button @click="alertHistoryPage--" :disabled="alertHistoryPage === 1" style="margin-right: 10px; background: rgba(22, 86, 126, 0.5); border: 1px solid #16567e; color: #fff; padding: 4px 8px; cursor: pointer; border-radius: 4px;">&lt; 上一页</button>
+                                <span>第 {{ alertHistoryPage }} / {{ historyAlertsTotalPages }} 页</span>
+                                <button @click="alertHistoryPage++" :disabled="alertHistoryPage === historyAlertsTotalPages" style="margin-left: 10px; background: rgba(22, 86, 126, 0.5); border: 1px solid #16567e; color: #fff; padding: 4px 8px; cursor: pointer; border-radius: 4px;">下一页 &gt;</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
 
         </div>
     </div>
