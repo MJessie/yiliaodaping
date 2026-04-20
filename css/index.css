@@ -1234,7 +1234,6 @@
             flex: 1;
             min-height: 640px;
             border-radius: 30px;
-            border: 1px solid rgba(0, 243, 255, 0.2);
             background:
                 radial-gradient(circle at 50% 36%, rgba(0, 243, 255, 0.16), transparent 28%),
                 radial-gradient(circle at 50% 8%, rgba(67, 180, 255, 0.08), transparent 24%),
@@ -1265,8 +1264,83 @@
 
         .center-chart-frame::after {
             inset: 12px;
-            border: 1px solid rgba(120, 220, 255, 0.07);
+            border: 1px solid rgba(120, 220, 255, 0.03);
             border-radius: 22px;
+        }
+
+        .center-frame-beam,
+        .center-frame-corner {
+            position: absolute;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .center-frame-beam {
+            left: 56px;
+            right: 56px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.28), rgba(140, 255, 226, 0.42), rgba(0, 243, 255, 0.28), transparent);
+            box-shadow: 0 0 16px rgba(0, 243, 255, 0.18);
+            opacity: 0.9;
+        }
+
+        .center-frame-beam.beam-top {
+            top: 54px;
+        }
+
+        .center-frame-beam.beam-bottom {
+            bottom: 18px;
+            opacity: 0.45;
+        }
+
+        .center-frame-corner {
+            width: 42px;
+            height: 42px;
+            opacity: 0.8;
+        }
+
+        .center-frame-corner::before,
+        .center-frame-corner::after {
+            content: '';
+            position: absolute;
+            background: linear-gradient(90deg, rgba(154, 255, 233, 0.95), rgba(0, 243, 255, 0.35));
+            box-shadow: 0 0 14px rgba(0, 243, 255, 0.22);
+            border-radius: 999px;
+        }
+
+        .center-frame-corner::before {
+            width: 42px;
+            height: 2px;
+        }
+
+        .center-frame-corner::after {
+            width: 2px;
+            height: 42px;
+        }
+
+        .center-frame-corner.corner-tl {
+            top: 18px;
+            left: 18px;
+        }
+
+        .center-frame-corner.corner-tr {
+            top: 18px;
+            right: 18px;
+            transform: scaleX(-1);
+        }
+
+        .center-frame-corner.corner-bl {
+            bottom: 18px;
+            left: 18px;
+            transform: scaleY(-1);
+            opacity: 0.5;
+        }
+
+        .center-frame-corner.corner-br {
+            bottom: 18px;
+            right: 18px;
+            transform: scale(-1, -1);
+            opacity: 0.5;
         }
 
         .center-chart-glow {

@@ -1531,9 +1531,9 @@ createApp({
                 const zoneAnchors = {};
                 const guideLineData = [];
                 const zonePresets = {
-                    app: { width: 132, height: 108, topOffset: 30, titleInset: 16 },
-                    db: { width: 112, height: 84, topOffset: 20, titleInset: 14 },
-                    vm: { width: 112, height: 84, topOffset: 20, titleInset: 14 }
+                    app: { width: 132, height: 122, topOffset: 30, titleInset: 10 },
+                    db: { width: 112, height: 96, topOffset: 20, titleInset: 10 },
+                    vm: { width: 112, height: 96, topOffset: 20, titleInset: 10 }
                 };
                 const layerSymbols = {
                     app: 'path://M120 120H360V360H120zM420 120H660V360H420zM120 420H360V660H120zM420 420H660V660H420z',
@@ -1547,39 +1547,41 @@ createApp({
                 const topCats = ['LIS', 'PACS', '专科', '公卫', '区域检验', '医生', '基础', '急诊', '技术', '护士', '集成'];
                 const dbCats = ['Oracle DB', 'RocketMQ', 'Redis', 'Mysql DB', 'Milvus DB'];
                 const vmCats = ['Oracle VM', 'RocketMQ VM', 'Redis VM', 'Mysql VM', 'Milvus VM'];
+                const sharedGrid = {
+                    fiveCols: [15, 155, 295, 435, 575],
+                    fourCols: [85, 225, 365, 505],
+                    threeCols: [155, 295, 435]
+                };
 
                 // 顶层11个模块布局处理：使用固定中心点，保证第三排不会因为列数不同而视觉错位
                 const appCenters = {
-                    'LIS': { centerX: 35, baseY: 170 },
-                    'PACS': { centerX: 225, baseY: 170 },
-                    '专科': { centerX: 415, baseY: 170 },
-                    '公卫': { centerX: 605, baseY: 170 },
-                    '区域检验': { centerX: 35, baseY: 35 },
-                    '医生': { centerX: 225, baseY: 35 },
-                    '基础': { centerX: 415, baseY: 35 },
-                    '急诊': { centerX: 605, baseY: 35 },
-                    '技术': { centerX: 115, baseY: -100 },
-                    '护士': { centerX: 305, baseY: -100 },
-                    '集成': { centerX: 495, baseY: -100 }
+                    'LIS': { centerX: sharedGrid.fourCols[0], baseY: 170 },
+                    'PACS': { centerX: sharedGrid.fourCols[1], baseY: 170 },
+                    '专科': { centerX: sharedGrid.fourCols[2], baseY: 170 },
+                    '公卫': { centerX: sharedGrid.fourCols[3], baseY: 170 },
+                    '区域检验': { centerX: sharedGrid.fourCols[0], baseY: 35 },
+                    '医生': { centerX: sharedGrid.fourCols[1], baseY: 35 },
+                    '基础': { centerX: sharedGrid.fourCols[2], baseY: 35 },
+                    '急诊': { centerX: sharedGrid.fourCols[3], baseY: 35 },
+                    '技术': { centerX: sharedGrid.threeCols[0], baseY: -100 },
+                    '护士': { centerX: sharedGrid.threeCols[1], baseY: -100 },
+                    '集成': { centerX: sharedGrid.threeCols[2], baseY: -100 }
                 };
                 topCats.forEach((cat) => {
                     catLayout[cat] = appCenters[cat];
                 });
 
-                // 数据库由于是5个，占同样的总宽度 (3*180 = 540)，平均分布
+                // 数据库/中间件和虚机统一使用 5 列母网格，确保与上方 4 列/3 列形成整齐的内缩关系
                 dbCats.forEach((cat, index) => {
-                    const colX = index * (560 / 4) - 30;
-                    catLayout[cat] = { centerX: colX + 17.5, baseY: -240 };
+                    catLayout[cat] = { centerX: sharedGrid.fiveCols[index], baseY: -240 };
                 });
 
                 // 虚拟机与数据库一一对应对其，在数据库的更下方
                 vmCats.forEach((cat, index) => {
-                    const colX = index * (560 / 4) - 30;
-                    catLayout[cat] = { centerX: colX + 17.5, baseY: -390 };
+                    catLayout[cat] = { centerX: sharedGrid.fiveCols[index], baseY: -390 };
                 });
 
                 [
-                    { name: '应用层', y: 118, color: 'rgba(72,255,213,0.22)' },
                     { name: '数据库/中间件层', y: -188, color: 'rgba(72,255,213,0.22)' },
                     { name: '虚机资源层', y: -338, color: 'rgba(72,255,213,0.22)' }
                 ].forEach((guide) => {
@@ -1668,8 +1670,12 @@ createApp({
                             show: true,
                             formatter: `{name|${cat}}`,
                             position: 'center',
+                            align: 'center',
+                            verticalAlign: 'middle',
                             rich: {
                                 name: {
+                                    width: zoneWidth,
+                                    align: 'center',
                                     color: '#eafcff',
                                     fontSize: layerType === 'app' ? 15 : 13,
                                     fontWeight: 700,
