@@ -41,9 +41,10 @@ createApp({
             alertHistoryPage: 1,
             alertPageSize: 8,
             dutyPersonnel: [
-                { name: '王建国', role: '系统管理员', phone: '138-1234-5678' },
-                { name: '刘洋', role: '网络工程师', phone: '139-9876-5432' },
-                { name: '张伟', role: '数据库运维', phone: '158-1122-3344' }
+                { name: '王建国', role: '项目经理', phone: '138-1234-5678' },
+                { name: '刘洋', role: '一线工程师', phone: '139-9876-5432' },
+                { name: '张伟', role: '一线工程师', phone: '158-1122-3344' },
+                { name: '李静', role: '院方联系人', phone: '135-6677-8899' }
             ]
         };
     },
@@ -1643,37 +1644,44 @@ createApp({
             let slaClaim = null;
             let slaProcess = null;
 
+            // 根据选中等级设置 SLA 标准 (单位: 分钟) 和 模拟数据的乘数基准
             if (this.selectedClosureLevels.length > 0) {
-                const multipliers = { P0: 0, P1: 1.5, P2: 1.0, P3: 0.5 };
-                const slasClaim = { P0: 0.2, P1: 0.5, P2: 2.0, P3: 8.0 };
-                const slasProcess = { P0: 4.0, P1: 12.0, P2: 24.0, P3: 72.0 };
+                const multipliers = { P0: 0, P1: 0.6, P2: 2.0, P3: 4.0 };
+                const slasClaim = { P0: 5, P1: 15, P2: 60, P3: 240 };
+                const slasProcess = { P0: 30, P1: 60, P2: 120, P3: 480 };
+
                 let sumMultiplier = 0, sumClaim = 0, sumProcess = 0;
                 this.selectedClosureLevels.forEach(lvl => {
                     sumMultiplier += (multipliers[lvl] || 1);
-                    sumClaim += (slasClaim[lvl] || 1);
-                    sumProcess += (slasProcess[lvl] || 10);
+                    sumClaim += (slasClaim[lvl] || 10);
+                    sumProcess += (slasProcess[lvl] || 60);
                 });
                 const count = this.selectedClosureLevels.length;
                 multiplier = sumMultiplier / count;
-                slaClaim = +(sumClaim / count).toFixed(1);
-                slaProcess = +(sumProcess / count).toFixed(1);
+                slaClaim = Math.round(sumClaim / count);
+                slaProcess = Math.round(sumProcess / count);
             } else {
                 multiplier = 0.01;
             }
 
-            // Mock Data
-            const baseClaim = [2.2, 1.8, 1.1, 2.1, 1.8, 2.2, 1.4];
-            const claimTimeouts = (this.selectedClosureLevels.length === 0 || this.selectedClosureLevels.includes('P0')) ? new Array(rangeConfig.count).fill(0) : this.expandTrendSeries(
-                baseClaim.map(val => Math.max(0, val * multiplier)),
-                rangeConfig.count,
-                { varianceRatio: 0.1, min: 0, decimals: 1 }
-            );
-            const baseProcess = [5.2, 4.8, 4.1, 5.1, 3.8, 4.2, 3.4];
-            const processTimeouts = (this.selectedClosureLevels.length === 0 || this.selectedClosureLevels.includes('P0')) ? new Array(rangeConfig.count).fill(0) : this.expandTrendSeries(
-                baseProcess.map(val => Math.max(0, val * multiplier)),
-                rangeConfig.count,
-                { varianceRatio: 0.08, min: 0, decimals: 1 }
-            );
+            // Mock Data: 转换为分钟级别
+            const baseClaim = [18, 12, 9, 22, 15, 20, 14];
+            const claimTimeouts = (this.selectedClosureLevels.length === 0 || this.selectedClosureLevels.includes('P0'))
+                ? new Array(rangeConfig.count).fill(0)
+                : this.expandTrendSeries(
+                    baseClaim.map(val => Math.max(0, val * multiplier)),
+                    rangeConfig.count,
+                    { varianceRatio: 0.15, min: 0, decimals: 0 }
+                );
+
+            const baseProcess = [70, 65, 80, 50, 75, 45, 90];
+            const processTimeouts = (this.selectedClosureLevels.length === 0 || this.selectedClosureLevels.includes('P0'))
+                ? new Array(rangeConfig.count).fill(0)
+                : this.expandTrendSeries(
+                    baseProcess.map(val => Math.max(0, val * multiplier)),
+                    rangeConfig.count,
+                    { varianceRatio: 0.15, min: 0, decimals: 0 }
+                );
 
             const seriesConfig = [
                 {
@@ -1704,14 +1712,14 @@ createApp({
                     type: 'line',
                     data: Array(rangeConfig.count).fill(slaClaim),
                     symbol: 'none',
-                    lineStyle: { color: 'rgba(0, 243, 255, 0.4)', width: 2, type: 'dashed' }
+                    lineStyle: { color: 'rgba(0, 243, 255, 0.5)', width: 2, type: 'dashed' }
                 });
                 seriesConfig.push({
                     name: '处理 SLA 基线',
                     type: 'line',
                     data: Array(rangeConfig.count).fill(slaProcess),
                     symbol: 'none',
-                    lineStyle: { color: 'rgba(255, 204, 0, 0.4)', width: 2, type: 'dashed' }
+                    lineStyle: { color: 'rgba(255, 204, 0, 0.5)', width: 2, type: 'dashed' }
                 });
             }
 
@@ -1720,7 +1728,7 @@ createApp({
                     trigger: 'axis',
                     appendToBody: true,
                     formatter: function (params) {
-                        return params[0].name + '<br/>' + params.map(item => `${item.seriesName}: ${item.value} 小时`).join('<br/>');
+                        return params[0].name + '<br/>' + params.map(item => `${item.seriesName}: ${item.value} min`).join('<br/>');
                     }
                 },
                 legend: {
@@ -1728,16 +1736,18 @@ createApp({
                     textStyle: { color: '#86a6bc' },
                     top: 0
                 },
-                grid: { left: 45, right: 20, top: 35, bottom: 30 },
+                grid: { left: 45, right: 35, top: 40, bottom: 30 },
                 xAxis: {
                     type: 'category',
                     data: rangeConfig.labels,
-                    axisLabel: { color: '#86a6bc' },
+                    axisLabel: { color: '#86a6bc', margin: 12 },
                     axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
                 },
                 yAxis: {
                     type: 'value',
-                    axisLabel: { color: '#86a6bc', formatter: '{value} h' },
+                    name: '分钟(min)',
+                    nameTextStyle: { color: '#86a6bc', padding: [0, 30, 0, -5] },
+                    axisLabel: { color: '#86a6bc', formatter: '{value}' },
                     splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
                 },
                 series: seriesConfig
@@ -1809,13 +1819,13 @@ createApp({
             if (!chart) return;
             const rangeConfig = this.getHospitalRangeConfig();
 
-            // Mock Data
-            const baseTier1 = [4.2, 3.8, 4.5, 4.1, 4.8, 3.9, 4.3];
-            const baseTier2 = [6.1, 6.5, 7.2, 6.3, 7.0, 6.8, 7.5];
+            // X轴按时间趋势，单位为分钟(min)
+            const baseTier1 = [18, 24, 15, 28, 22, 19, 25];
+            const baseTier2 = [75, 90, 85, 110, 95, 80, 100];
 
-            const tier1Data = this.expandTrendSeries(baseTier1, rangeConfig.count, { varianceRatio: 0.1, min: 0, decimals: 1 });
-            const tier2Data = this.expandTrendSeries(baseTier2, rangeConfig.count, { varianceRatio: 0.1, min: 0, decimals: 1 });
-            const totalData = tier1Data.map((val, idx) => +(val + tier2Data[idx]).toFixed(1));
+            const tier1Data = this.expandTrendSeries(baseTier1, rangeConfig.count, { varianceRatio: 0.15, min: 0, decimals: 0 });
+            const tier2Data = this.expandTrendSeries(baseTier2, rangeConfig.count, { varianceRatio: 0.15, min: 0, decimals: 0 });
+            const totalData = tier1Data.map((val, idx) => val + tier2Data[idx]);
 
             chart.setOption({
                 tooltip: {
@@ -1823,26 +1833,29 @@ createApp({
                     appendToBody: true,
                     axisPointer: { type: 'shadow' },
                     formatter: function (params) {
-                        return params[0].name + '<br/>' + params.map(item => `${item.seriesName}: ${item.value} h`).join('<br/>');
+                        return params[0].name + '<br/>' + params.map(item => `${item.seriesName}: ${item.value} min`).join('<br/>');
                     }
                 },
                 legend: {
                     data: ['一线处理时长', '二线处理时长', '总处理时长'],
                     top: 0,
-                    textStyle: { color: '#86a6bc' }
+                    right: 0,
+                    itemWidth: 12,
+                    itemHeight: 12,
+                    textStyle: { color: '#86a6bc', fontSize: 12 }
                 },
-                grid: { left: 45, right: 20, top: 35, bottom: 25 },
+                grid: { left: 45, right: 15, top: 40, bottom: 25 },
                 xAxis: {
                     type: 'category',
                     data: rangeConfig.labels,
-                    axisLabel: { color: '#86a6bc', fontSize: 12 },
+                    axisLabel: { color: '#86a6bc', fontSize: 12, margin: 12 },
                     axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } },
                     axisTick: { show: false }
                 },
                 yAxis: {
                     type: 'value',
-                    name: '小时(h)',
-                    nameTextStyle: { color: '#86a6bc', padding: [0, 0, 0, -5] },
+                    name: '分钟(min)',
+                    nameTextStyle: { color: '#86a6bc', padding: [0, 30, 0, -5] },
                     axisLabel: { color: '#86a6bc', formatter: '{value}' },
                     splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
                 },
@@ -1851,7 +1864,7 @@ createApp({
                         name: '一线处理时长',
                         type: 'bar',
                         stack: 'total',
-                        barWidth: 16,
+                        barMaxWidth: 14,
                         itemStyle: {
                             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
                                 { offset: 0, color: '#00f3ff' },
@@ -1865,7 +1878,7 @@ createApp({
                         type: 'bar',
                         stack: 'total',
                         itemStyle: {
-                            borderRadius: [4, 4, 0, 0],
+                            borderRadius: [3, 3, 0, 0],
                             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
                                 { offset: 0, color: '#a03fe8' },
                                 { offset: 1, color: 'rgba(160, 63, 232, 0.18)' }
@@ -1878,14 +1891,16 @@ createApp({
                         type: 'line',
                         smooth: true,
                         data: totalData,
-                        symbolSize: 8,
+                        symbol: 'circle',
+                        symbolSize: 6,
                         lineStyle: {
                             color: '#ffca63',
-                            width: 2,
-                            type: 'dashed'
+                            width: 2
                         },
                         itemStyle: {
-                            color: '#ffca63'
+                            color: '#ffca63',
+                            borderColor: '#fff',
+                            borderWidth: 1
                         }
                     }
                 ]
