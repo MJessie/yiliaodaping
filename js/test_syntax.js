@@ -16,8 +16,7 @@ createApp({
             activeMetricTitle: '',
             activeModalCard: null,
             selectedAlertLevels: ['P0', 'P1', 'P2', 'P3'],
-            selectedResponseLevels: ['P1'],
-            selectedClosureLevels: ['P1'],
+            selectedResponseLevel: '全部',
             selectedTicketStatus: '全部',
             modalAlertLevels: ['P0', 'P1', 'P2', 'P3'],
             modalProject: 'all',
@@ -28,18 +27,6 @@ createApp({
             userCurrentPage: 1,
             userPageSize: 8,
             activeAppTab: 'core',
-            systemAlertModalVisible: false,
-            selectedTopologyNode: null,
-            systemAlerts: [],
-            alertStatusFilter: [],
-            alertLevelFilter: [],
-            alertStartTimeFilter: '',
-            alertEndTimeFilter: '',
-            alertCurrentPage: 1,
-            alertModalActiveTab: 'active',
-            alertActivePage: 1,
-            alertHistoryPage: 1,
-            alertPageSize: 8,
             dutyPersonnel: [
                 { name: '王建国', role: '系统管理员', phone: '138-1234-5678' },
                 { name: '刘洋', role: '网络工程师', phone: '139-9876-5432' },
@@ -131,211 +118,30 @@ createApp({
             return Math.round(426 * multiplier);
         },
         centerNodes() {
-            // 按照图片的精确节点数生成数据
-            const buildLayerMetric = (layerType, isError, category) => {
-                if (layerType === 'app') {
-                    const podTotal = Math.floor(6 + Math.random() * 5);
-                    const podAlive = isError
-                        ? Math.max(1, podTotal - (1 + Math.floor(Math.random() * Math.min(3, podTotal - 1))))
-                        : podTotal;
-                    return {
-                        metricName: '错误率',
-                        metricValue: isError ? Number((1.2 + Math.random() * 2.8).toFixed(2)) : Number((0.01 + Math.random() * 0.18).toFixed(2)),
-                        metricUnit: '%',
-                        appMetrics: [
-                            {
-                                label: 'POD存活',
-                                value: `${podAlive}|${podTotal}`,
-                                unit: ''
-                            },
-                            {
-                                label: '错误率',
-                                value: isError ? Number((1.2 + Math.random() * 2.8).toFixed(2)) : Number((0.01 + Math.random() * 0.18).toFixed(2)),
-                                unit: '%'
-                            },
-                            {
-                                label: 'P50响应',
-                                value: isError ? Math.floor(280 + Math.random() * 260) : Math.floor(35 + Math.random() * 90),
-                                unit: 'ms'
-                            },
-                            {
-                                label: '吞吐率',
-                                value: isError ? Number((220 + Math.random() * 180).toFixed(1)) : Number((520 + Math.random() * 380).toFixed(1)),
-                                unit: 'req/s'
-                            },
-                            {
-                                label: 'POD重启次数',
-                                value: isError ? Math.floor(1 + Math.random() * 5) : 0,
-                                unit: '次'
-                            }
-                        ]
-                    };
-                }
-
-                if (layerType === 'db') {
-                    if (category === 'RocketMQ') {
-                        return {
-                            metricName: '消息堆积',
-                            metricValue: isError ? Math.floor(800 + Math.random() * 900) : Math.floor(20 + Math.random() * 120),
-                            metricUnit: '条'
-                        };
-                    }
-
-                    return {
-                        metricName: '连接使用率',
-                        metricValue: isError ? Number((86 + Math.random() * 8).toFixed(1)) : Number((38 + Math.random() * 28).toFixed(1)),
-                        metricUnit: '%'
-                    };
-                }
-
-                const cpuLoad = isError ? Number((85 + Math.random() * 10).toFixed(1)) : Number((15 + Math.random() * 25).toFixed(1));
-                const memoryUsage = isError ? Number((82 + Math.random() * 12).toFixed(1)) : Number((32 + Math.random() * 26).toFixed(1));
-                const diskUsage = isError ? Number((84 + Math.random() * 10).toFixed(1)) : Number((36 + Math.random() * 28).toFixed(1));
-
-                const diskRead = isError ? Math.floor(120 + Math.random() * 300) : Math.floor(10 + Math.random() * 80);
-                const diskWrite = isError ? Math.floor(80 + Math.random() * 200) : Math.floor(5 + Math.random() * 50);
-                const ioUtil = isError ? Number((85 + Math.random() * 15).toFixed(1)) : Number((5 + Math.random() * 40).toFixed(1));
-                const connections = isError ? Math.floor(4000 + Math.random() * 6000) : Math.floor(300 + Math.random() * 2000);
-                const downloadBw = isError ? Math.floor(300 + Math.random() * 500) : Math.floor(20 + Math.random() * 150);
-                const uploadBw = isError ? Math.floor(200 + Math.random() * 400) : Math.floor(15 + Math.random() * 100);
-                const cpuAlertCount = isError ? Math.floor(3 + Math.random() * 6) : Math.floor(Math.random() * 2);
-                const memAlertCount = isError ? Math.floor(2 + Math.random() * 5) : Math.floor(Math.random() * 2);
-
-                return {
-                    metricName: 'CPU使用率',
-                    metricValue: cpuLoad,
-                    metricUnit: '%',
-                    vmMetrics: [
-                        {
-                            label: 'CPU使用率',
-                            value: cpuLoad,
-                            unit: '%'
-                        },
-                        {
-                            label: '内存使用率',
-                            value: memoryUsage,
-                            unit: '%'
-                        },
-                        {
-                            label: 'IOutil使用率*',
-                            value: ioUtil,
-                            unit: '%'
-                        },
-                        {
-                            label: '分区使用率*',
-                            value: diskUsage,
-                            unit: '%'
-                        },
-                        {
-                            label: '磁盘读取',
-                            value: diskRead,
-                            unit: 'MB/s'
-                        },
-                        {
-                            label: '磁盘写入',
-                            value: diskWrite,
-                            unit: 'MB/s'
-                        },
-                        {
-                            label: '连接数',
-                            value: connections,
-                            unit: ''
-                        },
-                        {
-                            label: '下载带宽',
-                            value: downloadBw,
-                            unit: 'Mbps'
-                        },
-                        {
-                            label: '上传带宽',
-                            value: uploadBw,
-                            unit: 'Mbps'
-                        },
-                        {
-                            label: '24小时内CPU使用大于80%次数',
-                            value: cpuAlertCount,
-                            unit: '次'
-                        },
-                        {
-                            label: '24小时内内存使用大于80%次数',
-                            value: memAlertCount,
-                            unit: '次'
-                        }
-                    ]
-                };
-            };
-
-            const topCategories = [
-                { cat: '技术', n: 8 }, { cat: '集成', n: 5 }, { cat: '基础', n: 8 }, { cat: '数据', n: 7 },
-                { cat: '护士', n: 5 }, { cat: '医生', n: 8 }, { cat: '专科', n: 8 }, { cat: 'LIS', n: 11 },
-                { cat: '区域检验', n: 8 }, { cat: '急诊', n: 8 }, { cat: '手麻', n: 6 }, { cat: 'ICU', n: 6 },
-                { cat: 'PACS', n: 8 }, { cat: 'VNA', n: 6 }, { cat: '公卫', n: 7 }, { cat: '健康平台', n: 8 }
-            ];
-            const errorNodes = ['LIS11', '公卫7', '区域检验1', '医生5'];
-            const middlewareErrorNodes = ['RocketMQ实例2', 'Redis实例3'];
-            const vmErrorNodes = ['RocketMQ VM实例2', 'Mysql VM实例1'];
+            // 所有170个应用按业务分组
+            const categories = ['LIS', 'PACS', '专科', '公卫', '区域检验', '医生', '基础', '急诊', '技术', '护士', '集成'];
+            const prefixes = ['前端-', '后端-', 'MW-'];
+            const suffixes = ['主服务', '网关服务', '接口服务', '系统管理', '配置中心', '服务集市', '病案管理', '托盘服务', '2d浏览器', '主页面服务'];
             const nodes = [];
+            let total = 0;
 
-            topCategories.forEach(obj => {
-                for (let i = 1; i <= obj.n; i++) {
-                    const nodeName = obj.cat + i;
-                    const health = errorNodes.includes(nodeName) ? 60 : 100;
-                    const metric = buildLayerMetric('app', health < 85, obj.cat);
-                    nodes.push({
-                        name: nodeName,
-                        category: obj.cat,
-                        value: health,
-                        layerType: 'app',
-                        metricName: metric.metricName,
-                        metricValue: metric.metricValue,
-                        metricUnit: metric.metricUnit,
-                        appMetrics: metric.appMetrics,
-                        symbol: obj.cat === '外部接口' ? 'circle' : undefined
-                    });
+            categories.forEach(cat => {
+                const count = Math.floor(Math.random() * 5 + 13); // 每个分类下约13~17个应用
+                for (let i = 0; i < count; i++) {
+                    const r = Math.random();
+                    const health = r > 0.95 ? Math.floor(Math.random() * 20 + 60) : 100;
+                    const pre = prefixes[Math.floor(Math.random() * prefixes.length)];
+                    const suf = suffixes[Math.floor(Math.random() * suffixes.length)];
+                    nodes.push({ name: `${pre}${suf}`, category: cat, value: health });
+                    total++;
+                    if (total >= 170) return;
                 }
+                if (total >= 170) return;
             });
-
-            // 数据库与中间件
-            const dbConfigs = [
-                { name: 'Oracle DB', count: 2 },
-                { name: 'RocketMQ', count: 4 },
-                { name: 'Redis', count: 4 },
-                { name: 'Mysql DB', count: 2 },
-                { name: 'Milvus DB', count: 2 }
-            ];
-
-            dbConfigs.forEach(conf => {
-                for (let i = 1; i <= conf.count; i++) {
-                    const dbNodeName = conf.name + '实例' + i;
-                    const dbHealth = middlewareErrorNodes.includes(dbNodeName) ? 60 : 100;
-                    const dbMetric = buildLayerMetric('db', false, conf.name);
-                    nodes.push({
-                        name: dbNodeName,
-                        category: conf.name,
-                        value: dbHealth,
-                        layerType: 'db',
-                        metricName: dbMetric.metricName,
-                        metricValue: buildLayerMetric('db', dbHealth < 85, conf.name).metricValue,
-                        metricUnit: dbMetric.metricUnit
-                    });
-                    // 同步的虚拟机
-                    const vmCat = conf.name.replace(' DB', ' VM').replace('RocketMQ', 'RocketMQ VM').replace('Redis', 'Redis VM');
-                    const vmNodeName = vmCat + '实例' + i;
-                    const vmHealth = vmErrorNodes.includes(vmNodeName) ? 60 : 100;
-                    const vmMetric = buildLayerMetric('vm', vmHealth < 85, vmCat);
-                    nodes.push({
-                        name: vmNodeName,
-                        category: vmCat,
-                        value: vmHealth,
-                        layerType: 'vm',
-                        metricName: vmMetric.metricName,
-                        metricValue: vmMetric.metricValue,
-                        metricUnit: vmMetric.metricUnit,
-                        vmMetrics: vmMetric.vmMetrics
-                    });
-                }
-            });
-
+            // 补齐恰好170个
+            while (nodes.length < 170) {
+                nodes.push({ name: `后端-补充服务${nodes.length}`, category: '基础', value: 100 });
+            }
             return nodes;
         },
         pagedUserList() {
@@ -344,32 +150,6 @@ createApp({
         },
         userTotalPages() {
             return Math.ceil(this.activeUserList.length / this.userPageSize) || 1;
-        },
-        topologyAlertTitle() {
-            const nodeName = this.selectedTopologyNode && this.selectedTopologyNode.name ? this.selectedTopologyNode.name : '当前节点';
-            const rangeLabel = this.selectedRange === 'month' ? '本月' : (this.selectedRange === 'week' ? '本周' : '今日');
-            return `${nodeName} 告警列表`;
-        },
-        alertLevelOptions() {
-            return ['P0', 'P1', 'P2', 'P3'];
-        },
-        filteredSystemAlerts() {
-            return this.systemAlerts.filter(alert => {
-                const statusMatched = this.alertStatusFilter.length === 0 || this.alertStatusFilter.includes(alert.status);
-                const levelMatched = this.alertLevelFilter.length === 0 || this.alertLevelFilter.includes(alert.level);
-                const startFilter = this.alertStartTimeFilter ? new Date(this.alertStartTimeFilter).getTime() : null;
-                const endFilter = this.alertEndTimeFilter ? new Date(this.alertEndTimeFilter).getTime() : null;
-                const timeMatched = (startFilter === null || alert.occurredAt >= startFilter)
-                    && (endFilter === null || alert.occurredAt <= endFilter);
-                return statusMatched && levelMatched && timeMatched;
-            });
-        },
-        pagedSystemAlerts() {
-            const start = (this.alertCurrentPage - 1) * this.alertPageSize;
-            return this.filteredSystemAlerts.slice(start, start + this.alertPageSize);
-        },
-        systemAlertsTotalPages() {
-            return Math.ceil(this.filteredSystemAlerts.length / this.alertPageSize) || 1;
         },
         selectedHospital() {
             return this.hospitals.find((item) => item.id === this.selectedHospitalId) || this.hospitals[0];
@@ -471,10 +251,6 @@ createApp({
                 mttrValue: Math.max(10, Math.round(hospital.mttrValue + offset * 2 + (Math.random() * 10 - 5)))
             }));
 
-            if (this.systemAlertModalVisible && this.selectedTopologyNode) {
-                this.openSystemAlertModal(this.selectedTopologyNode);
-            }
-
             this.$nextTick(() => this.renderCharts());
         },
         selectedAlertLevels: {
@@ -488,44 +264,15 @@ createApp({
                 });
             }
         },
-        selectedResponseLevels: {
-            deep: true,
-            handler() {
-                if (this.currentView !== 'hq') {
-                    this.$nextTick(() => this.renderHospitalResponseChart());
-                }
-            }
-        },
-        selectedClosureLevels: {
-            deep: true,
-            handler() {
-                if (this.currentView !== 'hq') {
-                    this.$nextTick(() => this.renderHospitalClosureTimeoutChart());
-                }
+        selectedResponseLevel() {
+            if (this.currentView !== 'hq') {
+                this.$nextTick(() => this.renderHospitalResponseChart());
             }
         },
         selectedTicketStatus() {
             if (this.currentView !== 'hq') {
                 this.$nextTick(() => this.renderHospitalTicketChart());
             }
-        },
-        alertStatusFilter: {
-            deep: true,
-            handler() {
-                this.alertCurrentPage = 1;
-            }
-        },
-        alertLevelFilter: {
-            deep: true,
-            handler() {
-                this.alertCurrentPage = 1;
-            }
-        },
-        alertStartTimeFilter() {
-            this.alertCurrentPage = 1;
-        },
-        alertEndTimeFilter() {
-            this.alertCurrentPage = 1;
         },
         modalAlertLevels: {
             deep: true,
@@ -597,157 +344,6 @@ createApp({
         });
     },
     methods: {
-        getHospitalRangeConfig() {
-            const now = new Date();
-            if (this.selectedRange === 'today') {
-                const labels = [];
-                for (let hour = 0; hour < 24; hour++) {
-                    labels.push(`${hour.toString().padStart(2, '0')}:00`);
-                }
-                return {
-                    key: 'today',
-                    label: '今日',
-                    labels,
-                    count: 24
-                };
-            }
-
-            if (this.selectedRange === 'month') {
-                const labels = [];
-                for (let i = 29; i >= 0; i--) {
-                    const d = new Date();
-                    d.setDate(d.getDate() - i);
-                    labels.push(`${d.getMonth() + 1}-${d.getDate()}`);
-                }
-                return { key: 'month', label: '本月', labels, count: 30 };
-            }
-
-            const labels = [];
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                labels.push(`${d.getMonth() + 1}-${d.getDate()}`);
-            }
-            return { key: 'week', label: '本周', labels, count: 7 };
-        },
-        expandTrendSeries(baseSeries, count, options = {}) {
-            const source = Array.isArray(baseSeries) && baseSeries.length ? baseSeries : [0];
-            const varianceRatio = options.varianceRatio ?? 0.08;
-            const decimals = options.decimals ?? 0;
-            const min = options.min ?? 0;
-            const formatter = decimals > 0
-                ? (value) => Number(value.toFixed(decimals))
-                : (value) => Math.round(value);
-
-            if (count === 1) {
-                return [formatter(Math.max(min, source[source.length - 1]))];
-            }
-
-            return Array.from({ length: count }, (_, index) => {
-                const sourceIndex = Math.min(source.length - 1, Math.floor(index * source.length / count));
-                const baseValue = Number(source[sourceIndex]) || 0;
-                const wave = Math.sin((index + 1) * 1.37) * Math.max(1, baseValue * varianceRatio);
-                return formatter(Math.max(min, baseValue + wave));
-            });
-        },
-        getAlertRangeInfo() {
-            const end = new Date();
-            const start = new Date(end);
-            if (this.selectedRange === 'month') start.setDate(end.getDate() - 29);
-            else if (this.selectedRange === 'week') start.setDate(end.getDate() - 6);
-            else start.setHours(0, 0, 0, 0);
-            return { start, end };
-        },
-        formatAlertDateTime(date) {
-            const year = date.getFullYear();
-            const month = `${date.getMonth() + 1}`.padStart(2, '0');
-            const day = `${date.getDate()}`.padStart(2, '0');
-            const hour = `${date.getHours()}`.padStart(2, '0');
-            const minute = `${date.getMinutes()}`.padStart(2, '0');
-            const second = `${date.getSeconds()}`.padStart(2, '0');
-            return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
-        },
-        formatAlertDateTimeInput(date) {
-            const year = date.getFullYear();
-            const month = `${date.getMonth() + 1}`.padStart(2, '0');
-            const day = `${date.getDate()}`.padStart(2, '0');
-            const hour = `${date.getHours()}`.padStart(2, '0');
-            const minute = `${date.getMinutes()}`.padStart(2, '0');
-            return `${year}-${month}-${day}T${hour}:${minute}`;
-        },
-        buildTopologyAlertContent(node, index, status) {
-            const templatesByLayer = {
-                app: [
-                    '应用接口错误率突增，需排查接口服务与依赖链路',
-                    '应用响应时间抖动明显，可能存在线程池或下游调用阻塞',
-                    '应用实例健康检查失败，建议核查发布版本与容器状态'
-                ],
-                db: [
-                    '数据库连接占用持续升高，需检查慢查询与连接池设置',
-                    '中间件消息消费堆积，建议核对消费组和实例负载',
-                    '数据库实例访问波动，建议检查主机资源与存储时延'
-                ],
-                vm: [
-                    '虚机 CPU 负载异常升高，建议排查进程与调度任务',
-                    '虚机内存使用率持续攀升，建议核查缓存与驻留进程',
-                    '虚机分区使用率接近阈值，建议清理日志或扩容分区空间'
-                ]
-            };
-            const layerTemplates = templatesByLayer[node.layerType] || templatesByLayer.app;
-            const template = layerTemplates[index % layerTemplates.length];
-            return `${node.name} ${template}${status === '已关闭' ? '，当前已完成处置。' : ''}`;
-        },
-        toggleMultiFilter(listName, value) {
-            const target = this[listName];
-            if (!Array.isArray(target)) return;
-            const index = target.indexOf(value);
-            if (index > -1) {
-                target.splice(index, 1);
-            } else {
-                target.push(value);
-            }
-        },
-        openSystemAlertModal(node) {
-            if (!node || !node.name) return;
-
-            const { start, end } = this.getAlertRangeInfo();
-            const statusPool = ['未领取', '处理中', '已关闭'];
-            const levelPool = node.value < 85 ? ['P0', 'P1', 'P1', 'P2', 'P2', 'P3'] : ['P1', 'P2', 'P2', 'P3', 'P3'];
-            const baseCount = this.selectedRange === 'month' ? 96 : (this.selectedRange === 'week' ? 42 : 18);
-            const count = baseCount + (node.value < 85 ? 12 : 0) + (node.layerType === 'app' ? 6 : 0);
-            const startTime = start.getTime();
-            const endTime = end.getTime();
-            const timeSpan = Math.max(1, endTime - startTime);
-
-            const alerts = Array.from({ length: count }, (_, index) => {
-                const ratio = count === 1 ? 1 : index / (count - 1);
-                const timestamp = new Date(endTime - Math.floor(ratio * timeSpan));
-                const status = statusPool[index % statusPool.length];
-                const level = levelPool[index % levelPool.length];
-                return {
-                    id: `${timestamp.getTime()}`.slice(-8) + index,
-                    level,
-                    content: this.buildTopologyAlertContent(node, index, status),
-                    time: this.formatAlertDateTime(timestamp),
-                    occurredAt: timestamp.getTime(),
-                    status
-                };
-            }).sort((first, second) => second.occurredAt - first.occurredAt);
-
-            this.selectedTopologyNode = {
-                name: node.name,
-                category: node.category,
-                layerType: node.layerType,
-                value: node.value
-            };
-            this.systemAlerts = alerts;
-            this.alertStatusFilter = [];
-            this.alertLevelFilter = [];
-            this.alertStartTimeFilter = this.formatAlertDateTimeInput(start);
-            this.alertEndTimeFilter = this.formatAlertDateTimeInput(end);
-            this.alertCurrentPage = 1;
-            this.systemAlertModalVisible = true;
-        },
         toggleAlertLevel(level) {
             const idx = this.selectedAlertLevels.indexOf(level);
             if (idx > -1) {
@@ -757,12 +353,6 @@ createApp({
             } else {
                 this.selectedAlertLevels.push(level);
             }
-        },
-        toggleResponseLevel(level) {
-            this.selectedResponseLevels = [level];
-        },
-        toggleClosureLevel(level) {
-            this.selectedClosureLevels = [level];
         },
         toggleModalAlertLevel(level) {
             const idx = this.modalAlertLevels.indexOf(level);
@@ -868,7 +458,7 @@ createApp({
                                     { name: 'HIOS-技术', value: 1 },
                                     { name: 'HIOS-集成', value: 1 },
                                     { name: 'HIOS-基础', value: 1 },
-                                    { name: 'HIOS-数据', value: 1 },
+                                    { name: 'HIOS-版本', value: 1 },
                                     { name: 'HIOS-护士', value: 1 },
                                     { name: 'HIOS-医生', value: 1 },
                                     { name: 'HIOS-专科', value: 1 },
@@ -877,10 +467,10 @@ createApp({
                                     { name: '临床-急诊', value: 1 },
                                     { name: '临床-手麻', value: 1 },
                                     { name: '临床-ICU', value: 1 },
+                                    { name: '设备-连接', value: 1 },
                                     { name: '影像-PACS', value: 1 },
                                     { name: '影像-VNA', value: 1 },
-                                    { name: '区域医疗-公卫', value: 1 },
-                                    { name: '区域医疗-健康平台', value: 1 }
+                                    { name: '区域医疗-公卫', value: 1 }
                                 ]
                             }
                         ]
@@ -1098,7 +688,7 @@ createApp({
         renderLeftChart1() {
             const chart = this.ensureChart('leftChart1', 'left-chart-1');
             if (!chart) return;
-            const systems = ['RocketMQ', 'ElasticSearch', 'Logstash', 'Kibana', 'Doris', 'Redis', 'OpenGauss', 'Oracle', '海量DB', '达梦', '金仓', '数盈平台', 'HIOS技术', 'HIOS集成', 'HIOS基础', 'HIOS数据', 'HIOS护士', 'HIOS医生', 'HIOS专科', '临床LIS', '临床区域检验', '临床急诊', '临床手麻', '临床ICU', '影像PACS', '影像VNA', '区域医疗公卫', '区域医疗健康平台'];
+            const systems = ['RocketMQ', 'ElasticSearch', 'Logstash', 'Kibana', 'Doris', 'Redis', 'OpenGauss', 'Oracle', '海量DB', '达梦', '金仓', '数盈平台', 'HIOS技术', 'HIOS集成', 'HIOS基础', 'HIOS版本', 'HIOS护士', 'HIOS医生', 'HIOS专科', '临床LIS', '临床区域检验', '临床急诊', '临床手麻', '临床ICU', '设备连接', '影像PACS', '影像VNA', '区域医疗公卫'];
 
             const data = systems.reduce((acc, sys) => {
                 const val = Math.floor(Math.random() * 50) + 10; // 随机生成告警总数
@@ -1388,7 +978,7 @@ createApp({
             if (!chart) return;
             const names = this.sortedHospitals.map((item) => item.alias || item.name);
             chart.setOption({
-                tooltip: { trigger: 'axis', appendToBody: true },
+                tooltip: { trigger: 'axis' },
                 legend: { top: 0, right: 0, textStyle: { color: '#c8e5f5' } },
                 grid: { left: 45, right: 20, bottom: 45, top: 40 },
                 xAxis: {
@@ -1482,11 +1072,18 @@ createApp({
         renderHospitalAlertChart() {
             const chart = this.ensureChart('hospitalAlert', 'hospital-alert-chart');
             if (!chart) return;
-            const rangeConfig = this.getHospitalRangeConfig();
+            const rangeLabel = this.selectedRange === '7d' ? '近 7 天' : this.selectedRange === 'custom' ? '自定义周期' : '近 30 天口径展示近 7 日走势';
+
+            const last7Days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                last7Days.push(`${d.getMonth() + 1}-${d.getDate()}`);
+            }
 
             // 根据选中的告警级别进行数据折算 (模拟筛选变化)
             let multiplier = 0;
-            if (this.selectedAlertLevels.includes('P0')) multiplier += 0; // P0 默认不出现
+            if (this.selectedAlertLevels.includes('P0')) multiplier += 0.4;
             if (this.selectedAlertLevels.includes('P1')) multiplier += 0.3;
             if (this.selectedAlertLevels.includes('P2')) multiplier += 0.2;
             if (this.selectedAlertLevels.includes('P3')) multiplier += 0.1;
@@ -1494,18 +1091,14 @@ createApp({
             // 如果全部都没选，默认展示0
             if (multiplier === 0) multiplier = 0;
 
-            const filteredData = this.expandTrendSeries(
-                (this.selectedHospital.alertTrend || []).map(val => val * multiplier),
-                rangeConfig.count,
-                { varianceRatio: 0.12, min: 0 }
-            );
+            const filteredData = (this.selectedHospital.alertTrend || []).map(val => Math.round(val * multiplier));
 
             chart.setOption({
-                tooltip: { trigger: 'axis', appendToBody: true },
+                tooltip: { trigger: 'axis' },
                 grid: { left: 45, right: 20, top: 35, bottom: 30 },
                 xAxis: {
                     type: 'category',
-                    data: rangeConfig.labels,
+                    data: last7Days,
                     axisLabel: { color: '#86a6bc' },
                     axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
                 },
@@ -1515,7 +1108,7 @@ createApp({
                     splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
                 },
                 series: [{
-                    name: `${rangeConfig.label}告警趋势`,
+                    name: rangeLabel,
                     type: 'line',
                     smooth: true,
                     symbolSize: 9,
@@ -1534,41 +1127,27 @@ createApp({
         renderHospitalResponseChart() {
             const chart = this.ensureChart('hospitalResponse', 'hospital-response-chart');
             if (!chart) return;
-            const rangeConfig = this.getHospitalRangeConfig();
+
+            const last7Days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                last7Days.push(`${d.getMonth() + 1}-${d.getDate()}`);
+            }
 
             // 根据选择的级别调整模拟数据和SLA基线
-            // 计算当前选中级别的平均乘数，若未选则返回0
             let multiplier = 1;
             let slaBaselineMtta = null;
             let slaBaselineMttr = null;
-
-            if (this.selectedResponseLevels.length > 0) {
-                const multipliers = { P0: 0, P1: 0.6, P2: 1.2, P3: 2.0 };
-                const slaMttas = { P0: 10, P1: 15, P2: 30, P3: 60 };
-                const slaMttrs = { P0: 30, P1: 60, P2: 120, P3: 240 };
-
-                let sumMultiplier = 0, sumMtta = 0, sumMttr = 0;
-                this.selectedResponseLevels.forEach(lvl => {
-                    sumMultiplier += (multipliers[lvl] || 1);
-                    sumMtta += (slaMttas[lvl] || 30);
-                    sumMttr += (slaMttrs[lvl] || 120);
-                });
-                const count = this.selectedResponseLevels.length;
-                multiplier = sumMultiplier / count;
-                slaBaselineMtta = Math.round(sumMtta / count);
-                slaBaselineMttr = Math.round(sumMttr / count);
-            } else {
-                multiplier = 0.01; // 未选时数据趋近于0
-            }
+            if (this.selectedResponseLevel === 'P0') { multiplier = 0.4; slaBaselineMtta = 10; slaBaselineMttr = 30; }
+            else if (this.selectedResponseLevel === 'P1') { multiplier = 0.6; slaBaselineMtta = 15; slaBaselineMttr = 60; }
+            else if (this.selectedResponseLevel === 'P2') { multiplier = 1.2; slaBaselineMtta = 30; slaBaselineMttr = 120; }
+            else if (this.selectedResponseLevel === 'P3') { multiplier = 2.0; slaBaselineMtta = 60; slaBaselineMttr = 240; }
 
             // 模拟 MTTR (恢复时长) 数据，通常比 MTTA (响应时长) 长
             const baseMtta = this.selectedHospital.responseTrend || [10, 12, 11, 15, 10, 9, 8];
-            const mttaData = (this.selectedResponseLevels.length === 0 || this.selectedResponseLevels.includes('P0')) ? new Array(rangeConfig.count).fill(0) : this.expandTrendSeries(
-                baseMtta.map(val => Math.max(1, val * multiplier)),
-                rangeConfig.count,
-                { varianceRatio: 0.1, min: 1 }
-            );
-            const mttrData = (this.selectedResponseLevels.length === 0 || this.selectedResponseLevels.includes('P0')) ? new Array(rangeConfig.count).fill(0) : mttaData.map((val, index) => Math.max(10, Math.round(val * 3 + Math.sin((index + 1) * 1.1) * 6 + 4)));
+            const mttaData = baseMtta.map(val => Math.max(1, Math.round(val * multiplier)));
+            const mttrData = mttaData.map(val => val * 3 + Math.floor(Math.random() * 10));
 
             const legendData = ['平均响应时长 (MTTA)', '平均恢复时长 (MTTR)'];
 
@@ -1599,21 +1178,21 @@ createApp({
                 seriesConfig.push({
                     name: '响应 SLA 基线',
                     type: 'line',
-                    data: Array(rangeConfig.count).fill(slaBaselineMtta),
+                    data: Array(last7Days.length).fill(slaBaselineMtta),
                     symbol: 'none',
                     lineStyle: { color: 'rgba(54, 216, 198, 0.4)', width: 2, type: 'dashed' }
                 });
                 seriesConfig.push({
                     name: '恢复 SLA 基线',
                     type: 'line',
-                    data: Array(rangeConfig.count).fill(slaBaselineMttr),
+                    data: Array(last7Days.length).fill(slaBaselineMttr),
                     symbol: 'none',
                     lineStyle: { color: 'rgba(160, 63, 232, 0.4)', width: 2, type: 'dashed' } // 与恢复时长同色系，降低可见度
                 });
             }
 
             chart.setOption({
-                tooltip: { trigger: 'axis', appendToBody: true },
+                tooltip: { trigger: 'axis' },
                 legend: {
                     data: legendData,
                     textStyle: { color: '#86a6bc' },
@@ -1622,7 +1201,7 @@ createApp({
                 grid: { left: 45, right: 20, top: 35, bottom: 30 },
                 xAxis: {
                     type: 'category',
-                    data: rangeConfig.labels,
+                    data: last7Days,
                     axisLabel: { color: '#86a6bc' },
                     axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
                 },
@@ -1637,116 +1216,88 @@ createApp({
         renderHospitalClosureTimeoutChart() {
             const chart = this.ensureChart('hospitalClosureTimeout', 'hospital-closure-timeout-chart');
             if (!chart) return;
-            const rangeConfig = this.getHospitalRangeConfig();
 
-            let multiplier = 1;
-            let slaClaim = null;
-            let slaProcess = null;
-
-            if (this.selectedClosureLevels.length > 0) {
-                const multipliers = { P0: 0, P1: 1.5, P2: 1.0, P3: 0.5 };
-                const slasClaim = { P0: 0.2, P1: 0.5, P2: 2.0, P3: 8.0 };
-                const slasProcess = { P0: 4.0, P1: 12.0, P2: 24.0, P3: 72.0 };
-                let sumMultiplier = 0, sumClaim = 0, sumProcess = 0;
-                this.selectedClosureLevels.forEach(lvl => {
-                    sumMultiplier += (multipliers[lvl] || 1);
-                    sumClaim += (slasClaim[lvl] || 1);
-                    sumProcess += (slasProcess[lvl] || 10);
-                });
-                const count = this.selectedClosureLevels.length;
-                multiplier = sumMultiplier / count;
-                slaClaim = +(sumClaim / count).toFixed(1);
-                slaProcess = +(sumProcess / count).toFixed(1);
-            } else {
-                multiplier = 0.01;
+            const last7Days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                last7Days.push(`${d.getMonth() + 1}-${d.getDate()}`);
             }
 
-            // Mock Data
-            const baseClaim = [2.2, 1.8, 1.1, 2.1, 1.8, 2.2, 1.4];
-            const claimTimeouts = (this.selectedClosureLevels.length === 0 || this.selectedClosureLevels.includes('P0')) ? new Array(rangeConfig.count).fill(0) : this.expandTrendSeries(
-                baseClaim.map(val => Math.max(0, val * multiplier)),
-                rangeConfig.count,
-                { varianceRatio: 0.1, min: 0, decimals: 1 }
-            );
-            const baseProcess = [5.2, 4.8, 4.1, 5.1, 3.8, 4.2, 3.4];
-            const processTimeouts = (this.selectedClosureLevels.length === 0 || this.selectedClosureLevels.includes('P0')) ? new Array(rangeConfig.count).fill(0) : this.expandTrendSeries(
-                baseProcess.map(val => Math.max(0, val * multiplier)),
-                rangeConfig.count,
-                { varianceRatio: 0.08, min: 0, decimals: 1 }
-            );
-
-            const seriesConfig = [
-                {
-                    name: '认领时长',
-                    type: 'line',
-                    smooth: true,
-                    data: claimTimeouts,
-                    lineStyle: { color: '#00f3ff', width: 3 },
-                    itemStyle: { color: '#00f3ff' },
-                    symbolSize: 8,
-                    areaStyle: { color: 'rgba(0, 243, 255, 0.12)' }
-                },
-                {
-                    name: '处理时长',
-                    type: 'line',
-                    smooth: true,
-                    data: processTimeouts,
-                    lineStyle: { color: '#ffcc00', width: 3 },
-                    itemStyle: { color: '#ffcc00' },
-                    symbolSize: 8,
-                    areaStyle: { color: 'rgba(255, 204, 0, 0.12)' }
-                }
-            ];
-
-            if (slaClaim) {
-                seriesConfig.push({
-                    name: '认领 SLA 基线',
-                    type: 'line',
-                    data: Array(rangeConfig.count).fill(slaClaim),
-                    symbol: 'none',
-                    lineStyle: { color: 'rgba(0, 243, 255, 0.4)', width: 2, type: 'dashed' }
-                });
-                seriesConfig.push({
-                    name: '处理 SLA 基线',
-                    type: 'line',
-                    data: Array(rangeConfig.count).fill(slaProcess),
-                    symbol: 'none',
-                    lineStyle: { color: 'rgba(255, 204, 0, 0.4)', width: 2, type: 'dashed' }
-                });
-            }
+            // Mock Data for 7 days
+            const closureRates = [94, 95, 96.5, 94.8, 97.2, 96.8, 98.1];
+            const timeoutRates = [5.2, 4.8, 4.1, 5.1, 3.8, 4.2, 3.4];
 
             chart.setOption({
                 tooltip: {
                     trigger: 'axis',
-                    appendToBody: true,
                     formatter: function (params) {
-                        return params[0].name + '<br/>' + params.map(item => `${item.seriesName}: ${item.value} 小时`).join('<br/>');
+                        return params[0].name + '<br/>' +
+                            params[0].seriesName + ': ' + params[0].value + '%<br/>' +
+                            params[1].seriesName + ': ' + params[1].value + '%';
                     }
                 },
                 legend: {
-                    data: ['认领时长', '处理时长'],
+                    data: ['闭环率', '超时率'],
                     textStyle: { color: '#86a6bc' },
                     top: 0
                 },
-                grid: { left: 45, right: 20, top: 35, bottom: 30 },
+                grid: { left: 45, right: 45, top: 35, bottom: 30 },
                 xAxis: {
                     type: 'category',
-                    data: rangeConfig.labels,
+                    data: last7Days,
                     axisLabel: { color: '#86a6bc' },
                     axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } }
                 },
-                yAxis: {
-                    type: 'value',
-                    axisLabel: { color: '#86a6bc', formatter: '{value} h' },
-                    splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
-                },
-                series: seriesConfig
-            }, true);
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '闭环率(%)',
+                        nameTextStyle: { color: '#86a6bc' },
+                        min: 90,
+                        max: 100,
+                        axisLabel: { color: '#86a6bc', formatter: '{value}' },
+                        splitLine: { show: false }
+                    },
+                    {
+                        type: 'value',
+                        name: '超时率(%)',
+                        nameTextStyle: { color: '#86a6bc' },
+                        min: 0,
+                        max: 10,
+                        axisLabel: { color: '#86a6bc', formatter: '{value}' },
+                        splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
+                    }
+                ],
+                series: [
+                    {
+                        name: '闭环率',
+                        type: 'line',
+                        smooth: true,
+                        data: closureRates,
+                        lineStyle: { color: '#00f3ff', width: 3 },
+                        itemStyle: { color: '#00f3ff' },
+                        symbolSize: 8,
+                        areaStyle: { color: 'rgba(0, 243, 255, 0.12)' },
+                        yAxisIndex: 0
+                    },
+                    {
+                        name: '超时率',
+                        type: 'line',
+                        smooth: true,
+                        data: timeoutRates,
+                        lineStyle: { color: '#ffcc00', width: 3 },
+                        itemStyle: { color: '#ffcc00' },
+                        symbolSize: 8,
+                        yAxisIndex: 1
+                    }
+                ]
+            });
         },
         renderHospitalTicketChart() {
             const chart = this.ensureChart('hospitalTicket', 'hospital-ticket-chart');
             if (!chart) return;
-
+            
             let multiplier = 1;
             if (this.selectedTicketStatus === '未分派') multiplier = 0.15;
             else if (this.selectedTicketStatus === '处理中') multiplier = 0.4;
@@ -1761,7 +1312,7 @@ createApp({
                 { value: 12, name: '发布', itemStyle: { color: '#a03fe8' } },
                 { value: 45, name: '巡检', itemStyle: { color: '#85ff53' } }
             ];
-
+            
             const data = baseData.map(item => ({
                 ...item,
                 value: Math.max(1, Math.round(item.value * multiplier))
@@ -1807,101 +1358,46 @@ createApp({
         renderHospitalResourceChart() {
             const chart = this.ensureChart('hospitalResource', 'hospital-resource-chart');
             if (!chart) return;
-            const rangeConfig = this.getHospitalRangeConfig();
-
-            // Mock Data
-            const baseTier1 = [4.2, 3.8, 4.5, 4.1, 4.8, 3.9, 4.3];
-            const baseTier2 = [6.1, 6.5, 7.2, 6.3, 7.0, 6.8, 7.5];
-
-            const tier1Data = this.expandTrendSeries(baseTier1, rangeConfig.count, { varianceRatio: 0.1, min: 0, decimals: 1 });
-            const tier2Data = this.expandTrendSeries(baseTier2, rangeConfig.count, { varianceRatio: 0.1, min: 0, decimals: 1 });
-            const totalData = tier1Data.map((val, idx) => +(val + tier2Data[idx]).toFixed(1));
 
             chart.setOption({
-                tooltip: {
-                    trigger: 'axis',
-                    appendToBody: true,
-                    axisPointer: { type: 'shadow' },
-                    formatter: function (params) {
-                        return params[0].name + '<br/>' + params.map(item => `${item.seriesName}: ${item.value} h`).join('<br/>');
-                    }
-                },
-                legend: {
-                    data: ['一线处理时长', '二线处理时长', '总处理时长'],
-                    top: 0,
-                    textStyle: { color: '#86a6bc' }
-                },
-                grid: { left: 45, right: 20, top: 35, bottom: 25 },
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: 65, right: 35, top: 15, bottom: 20 },
                 xAxis: {
-                    type: 'category',
-                    data: rangeConfig.labels,
-                    axisLabel: { color: '#86a6bc', fontSize: 12 },
-                    axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } },
-                    axisTick: { show: false }
+                    type: 'value',
+                    max: 100,
+                    axisLabel: { color: '#86a6bc', formatter: '{value}%' },
+                    splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
                 },
                 yAxis: {
-                    type: 'value',
-                    name: '小时(h)',
-                    nameTextStyle: { color: '#86a6bc', padding: [0, 0, 0, -5] },
-                    axisLabel: { color: '#86a6bc', formatter: '{value}' },
-                    splitLine: { lineStyle: { color: 'rgba(123,214,255,0.08)' } }
+                    type: 'category',
+                    data: ['存储使用', '内存分配', 'CPU 使用率'],
+                    axisLabel: { color: '#86a6bc' },
+                    axisLine: { lineStyle: { color: 'rgba(123,214,255,0.14)' } },
+                    inverse: true
                 },
                 series: [
                     {
-                        name: '一线处理时长',
+                        name: '使用率',
                         type: 'bar',
-                        stack: 'total',
-                        barWidth: 16,
-                        itemStyle: {
-                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                { offset: 0, color: '#00f3ff' },
-                                { offset: 1, color: 'rgba(0, 243, 255, 0.18)' }
-                            ])
-                        },
-                        data: tier1Data
-                    },
-                    {
-                        name: '二线处理时长',
-                        type: 'bar',
-                        stack: 'total',
-                        itemStyle: {
-                            borderRadius: [4, 4, 0, 0],
-                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                { offset: 0, color: '#a03fe8' },
-                                { offset: 1, color: 'rgba(160, 63, 232, 0.18)' }
-                            ])
-                        },
-                        data: tier2Data
-                    },
-                    {
-                        name: '总处理时长',
-                        type: 'line',
-                        smooth: true,
-                        data: totalData,
-                        symbolSize: 8,
-                        lineStyle: {
-                            color: '#ffca63',
-                            width: 2,
-                            type: 'dashed'
-                        },
-                        itemStyle: {
-                            color: '#ffca63'
+                        barWidth: 15,
+                        data: [
+                            { value: 45, itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: '#36d8c6' }, { offset: 1, color: 'rgba(54, 216, 198, 0.1)' }]) } },
+                            { value: 82, itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: '#ffcc00' }, { offset: 1, color: 'rgba(255, 204, 0, 0.1)' }]) } },
+                            { value: 65, itemStyle: { color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [{ offset: 0, color: '#00f3ff' }, { offset: 1, color: 'rgba(0, 243, 255, 0.1)' }]) } }
+                        ],
+                        label: {
+                            show: true,
+                            position: 'right',
+                            color: '#fff',
+                            formatter: '{c}%'
                         }
                     }
                 ]
-            }, true);
+            });
         },
         renderHospitalTopologyChart() {
             const chart = this.ensureChart('hospitalTopology', 'hospital-topology-chart');
             if (!chart) return;
-
-            // 绑定双击事件显示告警详情弹窗
-            chart.off('dblclick');
-            chart.on('dblclick', (params) => {
-                if (params.data && params.data.name !== '中心系统' && params.seriesName !== 'labels') {
-                    this.openSystemAlertModal(params.data);
-                }
-            });
 
             const dataNodes = this.centerNodes || [];
             if (dataNodes.length === 0) return;
@@ -1911,78 +1407,15 @@ createApp({
                 const scatterDataNormal = [];
                 const scatterDataWarn = [];
                 const labelData = [];
-                const zoneData = [];
-                const connectorLines = [];
-                const zoneAnchors = {};
-                const guideLineData = [];
-                const zonePresets = {
-                    app: { width: 142, height: 88, topOffset: 20, titleInset: 10 },
-                    db: { width: 112, height: 86, topOffset: 20, titleInset: 10 },
-                    vm: { width: 112, height: 86, topOffset: 20, titleInset: 10 }
-                };
-                const layerSymbols = {
-                    app: 'path://M120 120H360V360H120zM420 120H660V360H420zM120 420H360V660H120zM420 420H660V660H420z',
-                    db: 'path://M160 220C160 160 316 120 512 120C708 120 864 160 864 220V760C864 820 708 860 512 860C316 860 160 820 160 760V220zM160 220C160 280 316 320 512 320C708 320 864 280 864 220M160 490C160 550 316 590 512 590C708 590 864 550 864 490',
-                    middleware: 'path://M160 250L320 170L480 250L320 330zM544 250L704 170L864 250L704 330zM160 470L320 390L480 470L320 550zM544 470L704 390L864 470L704 550zM352 610L512 530L672 610L512 690z',
-                    vm: 'path://M150 160H874C915 160 948 193 948 234V404C948 445 915 478 874 478H150C109 478 76 445 76 404V234C76 193 109 160 150 160zM150 546H874C915 546 948 579 948 620V790C948 831 915 864 874 864H150C109 864 76 831 76 790V620C76 579 109 546 150 546zM188 248H736V390H188zM188 634H736V776H188zM792 248H846V302H792zM792 336H846V390H792zM792 634H846V688H792zM792 722H846V776H792z'
-                };
 
-                // 按照原图布局（4行4列+两排紧密的实例）
+                // 提取所有的业务类别并建立区块索引（简单分为 4 列网格）
+                const categories = [...new Set(dataNodes.map(n => n.category || '其他'))];
                 const catLayout = {};
-                const topCats = ['技术', '集成', '基础', '数据', '护士', '医生', '专科', 'LIS', '区域检验', '急诊', '手麻', 'ICU', 'PACS', 'VNA', '公卫', '健康平台'];
-                const dbCats = ['Oracle DB', 'RocketMQ', 'Redis', 'Mysql DB', 'Milvus DB'];
-                const vmCats = ['Oracle VM', 'RocketMQ VM', 'Redis VM', 'Mysql VM', 'Milvus VM'];
-                const sharedGrid = {
-                    fiveCols: [15, 155, 295, 435, 575],
-                    fourCols: [70, 220, 370, 520],
-                    threeCols: [155, 295, 435]
-                };
-
-                // 顶层16个模块布局处理：使用固定中心点，保证各排不会因为列数不同而视觉错位
-                const appCenters = {
-                    '技术': { centerX: sharedGrid.fourCols[0], baseY: 210 },
-                    '集成': { centerX: sharedGrid.fourCols[1], baseY: 210 },
-                    '基础': { centerX: sharedGrid.fourCols[2], baseY: 210 },
-                    '数据': { centerX: sharedGrid.fourCols[3], baseY: 210 },
-                    '护士': { centerX: sharedGrid.fourCols[0], baseY: 110 },
-                    '医生': { centerX: sharedGrid.fourCols[1], baseY: 110 },
-                    '专科': { centerX: sharedGrid.fourCols[2], baseY: 110 },
-                    'LIS': { centerX: sharedGrid.fourCols[3], baseY: 110 },
-                    '区域检验': { centerX: sharedGrid.fourCols[0], baseY: 10 },
-                    '急诊': { centerX: sharedGrid.fourCols[1], baseY: 10 },
-                    '手麻': { centerX: sharedGrid.fourCols[2], baseY: 10 },
-                    'ICU': { centerX: sharedGrid.fourCols[3], baseY: 10 },
-                    'PACS': { centerX: sharedGrid.fourCols[0], baseY: -90 },
-                    'VNA': { centerX: sharedGrid.fourCols[1], baseY: -90 },
-                    '公卫': { centerX: sharedGrid.fourCols[2], baseY: -90 },
-                    '健康平台': { centerX: sharedGrid.fourCols[3], baseY: -90 }
-                };
-                topCats.forEach((cat) => {
-                    catLayout[cat] = appCenters[cat];
-                });
-
-                // 数据库/中间件和虚机统一使用 5 列母网格，确保与上方 4 列/3 列形成整齐的内缩关系
-                dbCats.forEach((cat, index) => {
-                    catLayout[cat] = { centerX: sharedGrid.fiveCols[index], baseY: -210 };
-                });
-
-                // 虚拟机与数据库一一对应对其，在数据库的更下方
-                vmCats.forEach((cat, index) => {
-                    catLayout[cat] = { centerX: sharedGrid.fiveCols[index], baseY: -330 };
-                });
-
-                [
-                    { name: '数据库/中间件层', y: -150, color: 'rgba(72,255,213,0.22)' },
-                    { name: '虚机资源层', y: -270, color: 'rgba(72,255,213,0.22)' }
-                ].forEach((guide) => {
-                    guideLineData.push({
-                        coords: [[-70, guide.y], [640, guide.y]],
-                        lineStyle: {
-                            color: guide.color,
-                            width: 1,
-                            type: 'dashed'
-                        }
-                    });
+                categories.forEach((cat, index) => {
+                    catLayout[cat] = {
+                        col: index % 4,
+                        row: Math.floor(index / 4)
+                    };
                 });
 
                 const groupedNodes = {};
@@ -1993,133 +1426,59 @@ createApp({
                 });
 
                 for (const cat in groupedNodes) {
-                    const layout = catLayout[cat] || { centerX: 0, baseY: 300 };
+                    const layout = catLayout[cat];
                     const nodes = groupedNodes[cat];
 
-                    const centerX = layout.centerX;
-                    const baseY = layout.baseY;
-                    const layerType = topCats.includes(cat) ? 'app' : (dbCats.includes(cat) ? 'db' : 'vm');
-
-                    // 在该业务区块内计算内部小节点的排列，先获取其真实渲染跨径
-                    let maxSubCols = 5;
-                    // 拉开每个圆点的间距
-                    let gapX = 24;
-                    let gapY = 24;
-
-                    if (cat === '护士') {
-                        maxSubCols = 4;
-                    } else if (dbCats.includes(cat) || vmCats.includes(cat)) {
-                        maxSubCols = 2; // 圆点排成2列
-                        gapX = 35;
-                        gapY = 35;
-                    }
-
-                    // 根据真实节点数和单行最大列数求出最大宽度和最后标题应当所处的X中心位置 (由于节点从baseX散发产生偏移)
-                    const actualCols = Math.min(nodes.length, maxSubCols);
-                    const actualRows = Math.max(1, Math.ceil(nodes.length / maxSubCols));
-                    const groupWidth = (actualCols - 1) * gapX;
-                    const groupHeight = (actualRows - 1) * gapY;
-                    const zonePreset = zonePresets[layerType];
-                    const titleCenterX = centerX;
-                    const nodeStartX = centerX - groupWidth / 2;
-                    const zoneWidth = zonePreset.width;
-                    const zoneHeight = zonePreset.height;
-                    const zoneCenterY = baseY + zonePreset.topOffset - zoneHeight / 2;
-                    const titleY = zoneCenterY - zoneHeight / 2 + zonePreset.titleInset;
-
-                    zoneData.push({
-                        name: cat,
-                        value: [titleCenterX, zoneCenterY],
-                        symbolSize: [zoneWidth, zoneHeight],
-                        itemStyle: {
-                            color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-                                { offset: 0, color: 'rgba(23, 75, 84, 0.15)' },
-                                { offset: 1, color: 'rgba(5, 25, 28, 0.05)' }
-                            ]),
-                            borderColor: 'rgba(73, 255, 218, 0.1)',
-                            borderWidth: 1,
-                            shadowBlur: 8,
-                            shadowColor: 'rgba(73, 255, 218, 0.05)'
-                        }
-                    });
-
-                    zoneAnchors[cat] = {
-                        centerX: titleCenterX,
-                        topY: zoneCenterY + zoneHeight / 2 - 12,
-                        bottomY: zoneCenterY - zoneHeight / 2 + 12
-                    };
+                    // 每个业务区块的基本左上角坐标（这里定义物理坐标网格）
+                    const baseX = layout.col * 100;
+                    const baseY = -layout.row * 100;
 
                     // 添加该业务模块的标题文本
                     labelData.push({
                         name: cat,
-                        value: [titleCenterX, titleY],
+                        value: [baseX + 45, baseY + 10], // X居中，Y偏上
                         symbolSize: 1,
                         itemStyle: { color: 'transparent' },
                         label: {
                             show: true,
-                            formatter: `{name|${cat}}`,
+                            formatter: '{b}',
                             position: 'center',
-                            align: 'center',
-                            verticalAlign: 'middle',
-                            rich: {
-                                name: {
-                                    width: zoneWidth,
-                                    align: 'center',
-                                    color: '#eafcff',
-                                    fontSize: layerType === 'app' ? 15 : 13,
-                                    fontWeight: 700,
-                                    lineHeight: 20,
-                                    textShadowColor: 'rgba(0, 243, 255, 0.25)',
-                                    textShadowBlur: 10
-                                }
-                            }
+                            color: '#00f3ff',
+                            fontSize: 14,
+                            fontWeight: 'bold'
                         }
                     });
+
+                    // 在该业务区块内计算内部小节点的排列（按子网格）
+                    const subCols = Math.ceil(Math.sqrt(nodes.length)); // 自适应子列数
+                    const maxSubCols = Math.max(subCols, 1);
+                    const gapX = 85 / maxSubCols;
+                    const gapY = 70 / Math.max(Math.ceil(nodes.length / maxSubCols), 1);
 
                     nodes.forEach((node, i) => {
                         const sc = i % maxSubCols;
                         const sr = Math.floor(i / maxSubCols);
                         const isError = node.value < 85;
 
-                        // 横纵坐标偏移量计算 (左上角开始排，向下向右扩展)
-                        const px = nodeStartX + sc * gapX;
-                        const py = baseY - sr * gapY;
-                        const nodeSymbol = node.symbol || layerSymbols[layerType] || 'circle';
-                        const nodeSymbolSize = isError
-                            ? (layerType === 'app' ? 19 : 21)
-                            : (layerType === 'app' ? 17 : (layerType === 'db' ? 19 : 18));
-                        const nodeColor = isError
-                            ? new echarts.graphic.RadialGradient(0.5, 0.5, 0.6, [
-                                { offset: 0, color: '#fff4ef' },
-                                { offset: 0.45, color: '#ff8f70' },
-                                { offset: 1, color: '#ff3b3b' }
-                            ])
-                            : new echarts.graphic.RadialGradient(0.5, 0.5, 0.65, [
-                                { offset: 0, color: '#e9fff8' },
-                                { offset: 0.42, color: '#51ffd6' },
-                                { offset: 1, color: '#00b98f' }
-                            ]);
+                        // 横纵坐标偏移量计算
+                        const px = baseX + 5 + sc * gapX + (gapX / 2);
+                        const py = baseY - 15 - sr * gapY;
 
                         const pt = {
                             name: node.name,
                             category: cat,
-                            layerType: node.layerType || layerType,
-                            metricName: node.metricName,
-                            metricValue: node.metricValue,
-                            metricUnit: node.metricUnit,
-                            appMetrics: node.appMetrics,
-                            vmMetrics: node.vmMetrics,
                             value: [px, py, node.value],
-                            symbol: nodeSymbol,
                             itemStyle: {
-                                color: nodeColor,
-                                borderColor: isError ? '#ffd0c5' : '#c7fff3',
-                                borderWidth: 1,
-                                shadowBlur: isError ? 28 : (layerType === 'app' ? 16 : 18),
-                                shadowColor: isError ? 'rgba(255, 75, 75, 0.55)' : 'rgba(72,255,213,0.38)',
-                                opacity: 0.96
+                                color: isError ? '#ff2a2a' : new echarts.graphic.RadialGradient(0.5, 0.5, 0.5, [{
+                                    offset: 0, color: '#afffd8'
+                                }, {
+                                    offset: 1, color: '#00ff88'
+                                }]),
+                                shadowBlur: isError ? 20 : 15,
+                                shadowColor: isError ? '#ff2a2a' : '#00ff88',
+                                opacity: 0.9
                             },
-                            symbolSize: nodeSymbolSize,
+                            symbolSize: isError ? 16 : 12,
                         };
 
                         if (isError) scatterDataWarn.push(pt);
@@ -2127,218 +1486,37 @@ createApp({
                     });
                 }
 
-                dbCats.forEach((dbCat) => {
-                    const vmCat = dbCat.replace(' DB', ' VM').replace('RocketMQ', 'RocketMQ VM').replace('Redis', 'Redis VM');
-                    if (!zoneAnchors[dbCat] || !zoneAnchors[vmCat]) return;
-                    connectorLines.push({
-                        coords: [
-                            [zoneAnchors[dbCat].centerX, zoneAnchors[dbCat].bottomY],
-                            [zoneAnchors[vmCat].centerX, zoneAnchors[vmCat].topY]
-                        ],
-                        lineStyle: {
-                            color: 'rgba(129, 165, 255, 0.3)',
-                            width: 1.6,
-                            curveness: 0.08
-                        }
-                    });
-                });
-
                 chart.clear();
-
-                const topologyDependencies = {
-                    'LIS': ['集成', '数据', 'Oracle DB', 'Oracle VM', 'RocketMQ', 'RocketMQ VM'],
-                    'PACS': ['集成', '数据', 'Mysql DB', 'Mysql VM', 'Milvus DB', 'Milvus VM'],
-                    '医生': ['护士', '专科', 'LIS', 'Redis', 'Redis VM', 'Oracle DB', 'Oracle VM'],
-                    '护士': ['技术', '基础', 'Redis', 'Redis VM', 'RocketMQ', 'RocketMQ VM'],
-                    '专科': ['集成', '基础', '数据', 'Oracle DB', 'Oracle VM'],
-                    '区域检验': ['LIS', '公卫', '集成', 'Mysql DB', 'Mysql VM'],
-                    '急诊': ['护士', '医生', '基础', 'Oracle DB', 'Oracle VM'],
-                    '手麻': ['专科', '数据', 'Oracle DB', 'Oracle VM'],
-                    'ICU': ['急诊', '技术', 'RocketMQ', 'RocketMQ VM'],
-                    'VNA': ['PACS', '数据', 'Milvus DB', 'Milvus VM'],
-                    '公卫': ['区域检验', '健康平台', 'RocketMQ', 'RocketMQ VM'],
-                    '健康平台': ['公卫', '数据', 'Mysql DB', 'Mysql VM', 'Redis', 'Redis VM'],
-                    '技术': ['基础', 'Redis', 'Redis VM'],
-                    '集成': ['技术', '数据', 'RocketMQ', 'RocketMQ VM'],
-                    '基础': ['数据', 'Oracle DB', 'Oracle VM'],
-                    '数据': ['Oracle DB', 'Oracle VM', 'Mysql DB', 'Mysql VM', 'Milvus DB', 'Milvus VM']
-                };
-
-                const updateZoneHighlight = (hoverCat) => {
-                    if (!hoverCat) {
-                        chart.setOption({ series: [{ name: 'zones', data: zoneData }] });
-                        return;
-                    }
-                    const deps = topologyDependencies[hoverCat] || [];
-                    const hlCats = [hoverCat, ...deps];
-
-                    const newZoneData = zoneData.map(z => {
-                        if (hlCats.includes(z.name)) {
-                            return {
-                                ...z,
-                                itemStyle: {
-                                    ...z.itemStyle,
-                                    borderColor: '#00f3ff',
-                                    borderWidth: 2,
-                                    shadowColor: '#00f3ff',
-                                    shadowBlur: 30,
-                                    opacity: 1
-                                }
-                            };
-                        } else {
-                            return {
-                                ...z,
-                                itemStyle: {
-                                    ...z.itemStyle,
-                                    borderColor: 'rgba(73, 255, 218, 0.1)',
-                                    opacity: 0.3
-                                }
-                            };
-                        }
-                    });
-                    chart.setOption({ series: [{ name: 'zones', data: newZoneData }] });
-                };
-
-                chart.off('mouseover');
-                chart.on('mouseover', function (params) {
-                    if (params.seriesName === 'nodesNormal' || params.seriesName === 'nodesWarn') {
-                        updateZoneHighlight(params.data.category);
-                    }
-                });
-
-                chart.off('mouseout');
-                chart.on('mouseout', function (params) {
-                    if (params.seriesName === 'nodesNormal' || params.seriesName === 'nodesWarn') {
-                        updateZoneHighlight(null);
-                    }
-                });
-
                 chart.setOption({
-                    animationDuration: 900,
-                    animationDurationUpdate: 450,
                     tooltip: {
                         formatter: function (params) {
-                            if (params.seriesName === 'labels' || params.seriesName === 'zones' || params.seriesName === 'links' || params.seriesName === 'guides' || params.seriesName === 'guideLabels') return '';
-
-                            const getMetricColor = (label, value) => {
-                                const strVal = String(value);
-                                const num = parseFloat(value);
-                                let isAb = false;
-                                if (label === 'POD存活') {
-                                    const parts = strVal.split('|');
-                                    if (parts.length === 2 && parseInt(parts[0]) < parseInt(parts[1])) isAb = true;
-                                } else if (label.includes('使用率') || label.includes('负载') || label.includes('IOutil')) {
-                                    if (num > 80) isAb = true;
-                                } else if (label === '错误率') {
-                                    if (num > 1) isAb = true;
-                                } else if (label === 'P50响应') {
-                                    if (num > 200) isAb = true;
-                                } else if (label === 'POD重启次数' || label.includes('大于80%次数')) {
-                                    if (num > 0) isAb = true;
-                                } else if (label === '磁盘读取' || label === '磁盘写入') {
-                                    if (num > 100) isAb = true;
-                                } else if (label.includes('带宽')) {
-                                    if (num > 180) isAb = true;
-                                } else if (label === '消息堆积') {
-                                    if (num > 500) isAb = true;
-                                } else if (label === '连接数') {
-                                    if (num > 3000) isAb = true;
-                                } else if (label === '吞吐率') {
-                                    if (num < 450) isAb = true;
-                                } else if (label === '健康度') {
-                                    if (num < 100) isAb = true;
-                                }
-                                return isAb ? '#ff4d4f' : '';
-                            };
-
-                            if (params.data.layerType === 'app' && Array.isArray(params.data.appMetrics)) {
-                                const metrics = params.data.category === '外部接口'
-                                    ? params.data.appMetrics.filter(item => item.label === '错误率' || item.label === 'P50响应')
-                                    : params.data.appMetrics;
-                                return `${params.data.name}<br/>${metrics.map(item => {
-                                    const color = getMetricColor(item.label, item.value);
-                                    return color ? `${item.label}: <span style="color: ${color}">${item.value}${item.unit}</span>` : `${item.label}: ${item.value}${item.unit}`;
-                                }).join('<br/>')}`;
-                            }
-                            if (params.data.layerType === 'vm' && Array.isArray(params.data.vmMetrics)) {
-                                return `${params.data.name}<br/>${params.data.vmMetrics.map(item => {
-                                    const color = getMetricColor(item.label, item.value);
-                                    return color ? `${item.label}: <span style="color: ${color}">${item.value}${item.unit}</span>` : `${item.label}: ${item.value}${item.unit}`;
-                                }).join('<br/>')}`;
-                            }
-                            const metricName = params.data.metricName || '健康度';
-                            const metricValue = params.data.metricValue !== undefined ? params.data.metricValue : params.data.value[2];
-                            const metricUnit = params.data.metricUnit || '';
-                            const color = getMetricColor(metricName, metricValue);
-                            return `${params.data.name}<br/>${color ? `${metricName}: <span style="color: ${color}">${metricValue}${metricUnit}</span>` : `${metricName}: ${metricValue}${metricUnit}`}`;
+                            if (params.seriesName === 'labels') return '';
+                            return `${params.data.category} - ${params.data.name} <br/>健康度: ${params.data.value[2]}`;
                         }
                     },
                     grid: { left: 40, right: 40, top: 40, bottom: 20 },
-                    xAxis: { show: false, min: -80, max: 680 },
-                    yAxis: { show: false, min: -460, max: 260 },
+                    xAxis: { show: false, min: -10, max: 400 },
+                    yAxis: { show: false, min: -320, max: 20 },
                     series: [
-                        {
-                            name: 'guides',
-                            type: 'lines',
-                            coordinateSystem: 'cartesian2d',
-                            silent: true,
-                            data: guideLineData,
-                            z: 0,
-                            lineStyle: {
-                                color: 'rgba(112, 210, 228, 0.2)',
-                                width: 1,
-                                type: 'dashed'
-                            }
-                        },
-                        {
-                            name: 'links',
-                            type: 'lines',
-                            coordinateSystem: 'cartesian2d',
-                            silent: true,
-                            data: connectorLines,
-                            z: 0,
-                            lineStyle: {
-                                color: 'rgba(112, 210, 228, 0.3)',
-                                width: 1.5,
-                                type: 'dashed',
-                                curveness: 0.08
-                            },
-                            effect: {
-                                show: true,
-                                period: 4,
-                                trailLength: 0.12,
-                                symbol: 'circle',
-                                symbolSize: 4,
-                                color: '#9fc7ff'
-                            }
-                        },
-                        {
-                            name: 'zones',
-                            type: 'scatter',
-                            silent: true,
-                            symbol: 'roundRect',
-                            data: zoneData,
-                            z: 1
-                        },
                         {
                             name: 'labels',
                             type: 'scatter',
                             data: labelData,
-                            symbol: 'circle',
+                            symbol: 'rect',
                             silent: true // 忽略鼠标事件
                         },
                         {
-                            name: 'nodesNormal',
-                            type: 'scatter',
+                            type: 'effectScatter',
                             data: scatterDataNormal,
-                            z: 3
+                            symbol: 'circle',
+                            rippleEffect: { brushType: 'fill', scale: 2.5, period: 5 },
+                            itemStyle: { opacity: 0.8 }
                         },
                         {
-                            name: 'nodesWarn',
                             type: 'effectScatter',
                             data: scatterDataWarn,
-                            rippleEffect: { brushType: 'stroke', scale: 5, period: 2.4 },
-                            itemStyle: { opacity: 1 },
+                            symbol: 'circle',
+                            rippleEffect: { brushType: 'stroke', scale: 4, period: 2 },
                             zlevel: 2
                         }
                     ]
@@ -2403,7 +1581,7 @@ createApp({
             chart.setOption({
                 tooltip: {
                     formatter: function (params) {
-                        return params.data && params.data.name ? params.data.name : '';
+                        return params.data && params.data.name ? (params.data.name + (params.data.value && params.data.value[2] ? ('<br/>健康度: ' + params.data.value[2]) : '')) : '';
                     }
                 },
                 xAxis: { show: false, min: -150, max: 150 },

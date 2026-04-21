@@ -57,12 +57,12 @@
                                 <h3>MTTA/MTTR</h3>
                             </div>
                             <div style="display: flex; gap: 6px; margin-right: 15px;">
-                                <div v-for="lvl in ['全部', 'P0', 'P1', 'P2', 'P3']" :key="lvl"
-                                    @click="selectedResponseLevel = lvl" :style="{
+                                <div v-for="lvl in ['P0', 'P1', 'P2', 'P3']" :key="lvl"
+                                    @click="toggleResponseLevel(lvl)" :style="{
                                          cursor: 'pointer', padding: '2px 8px', fontSize: '12px', borderRadius: '4px',
-                                         backgroundColor: selectedResponseLevel === lvl ? 'rgba(54, 216, 198, 0.15)' : 'transparent',
-                                         border: '1px solid ' + (selectedResponseLevel === lvl ? '#36d8c6' : 'rgba(134, 166, 188, 0.3)'),
-                                         color: selectedResponseLevel === lvl ? '#36d8c6' : '#86a6bc',
+                                         backgroundColor: selectedResponseLevels.includes(lvl) ? 'rgba(54, 216, 198, 0.15)' : 'transparent',
+                                         border: '1px solid ' + (selectedResponseLevels.includes(lvl) ? '#36d8c6' : 'rgba(134, 166, 188, 0.3)'),
+                                         color: selectedResponseLevels.includes(lvl) ? '#36d8c6' : '#86a6bc',
                                          userSelect: 'none', transition: 'all 0.2s'
                                      }">
                                     {{ lvl }}
@@ -75,7 +75,19 @@
                     <section class="panel flex-1">
                         <div class="panel-header">
                             <div>
-                                <h3>闭环率与超时率</h3>
+                                <h3>认领时长VS处理时长</h3>
+                            </div>
+                            <div style="display: flex; gap: 6px; margin-right: 15px;">
+                                <div v-for="lvl in ['P0', 'P1', 'P2', 'P3']" :key="lvl" @click="toggleClosureLevel(lvl)"
+                                    :style="{
+                                         cursor: 'pointer', padding: '2px 8px', fontSize: '12px', borderRadius: '4px',
+                                         backgroundColor: selectedClosureLevels.includes(lvl) ? 'rgba(0, 243, 255, 0.15)' : 'transparent',
+                                         border: '1px solid ' + (selectedClosureLevels.includes(lvl) ? '#00f3ff' : 'rgba(134, 166, 188, 0.3)'),
+                                         color: selectedClosureLevels.includes(lvl) ? '#00f3ff' : '#86a6bc',
+                                         userSelect: 'none', transition: 'all 0.2s'
+                                     }">
+                                    {{ lvl }}
+                                </div>
                             </div>
                         </div>
                         <div id="hospital-closure-timeout-chart" class="chart"></div>
@@ -109,16 +121,15 @@
                                 <h3>值班人员</h3>
                             </div>
                         </div>
-                        <div
-                            style="padding: 10px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <div style="padding: 10px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
                             <div v-for="(person, idx) in dutyPersonnel" :key="idx"
                                 style="padding: 12px; background: rgba(0, 243, 255, 0.05); border: 1px solid rgba(0, 243, 255, 0.2); border-radius: 8px; display: flex; align-items: center;">
                                 <div style="flex: 1;">
-                                    <div
-                                        style="color: #fff; font-size: 14px; font-weight: bold; margin-bottom: 4px;">
+                                    <div style="color: #fff; font-size: 14px; font-weight: bold; margin-bottom: 4px;">
                                         {{ person.name }}
                                         <span
-                                            style="font-size: 12px; color: #00f3ff; margin-left: 8px; font-weight: normal;">{{ person.role }}</span>
+                                            style="font-size: 12px; color: #00f3ff; margin-left: 8px; font-weight: normal;">{{
+                                            person.role }}</span>
                                     </div>
                                     <div style="color: #86a6bc; font-size: 12px;">联系方式: {{ person.phone }}</div>
                                 </div>
@@ -150,7 +161,7 @@
                     <section class="panel flex-1">
                         <div class="panel-header">
                             <div>
-                                <h3>存储空间统计</h3>
+                                <h3>工单处理时长</h3>
                             </div>
                         </div>
                         <div id="hospital-resource-chart" class="chart"></div>
@@ -159,28 +170,36 @@
             </section>
 
             <!-- 弹出层：节点告警列表 -->
-            <div v-show="systemAlertModalVisible" class="modal-overlay" style="display:flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(7, 19, 32, 0.85); justify-content: center; align-items: center; z-index: 1000;"
+            <div v-show="systemAlertModalVisible" class="modal-overlay"
+                style="display:flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(7, 19, 32, 0.85); justify-content: center; align-items: center; z-index: 1000;"
                 @click.self="systemAlertModalVisible = false">
-                <div class="modal-content" style="width: 920px; height: 620px; background: rgba(11, 28, 47, 0.95); border: 1px solid #16567e; border-radius: 8px; box-shadow: 0 0 30px rgba(0, 243, 255, 0.3); display: flex; flex-direction: column;">
+                <div class="modal-content"
+                    style="width: 920px; height: 620px; background: rgba(11, 28, 47, 0.95); border: 1px solid #16567e; border-radius: 8px; box-shadow: 0 0 30px rgba(0, 243, 255, 0.3); display: flex; flex-direction: column;">
 
-                    <div class="modal-header" style="height: 50px; background: rgba(0, 243, 255, 0.1); border-bottom: 1px solid #16567e; display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
-                        <div style="display: flex; gap: 16px; flex: 1; justify-content: flex-start; align-items: center; min-width: 0;">
-                            <div style="color: #ffffff; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ topologyAlertTitle }}</div>
+                    <div class="modal-header"
+                        style="height: 50px; background: rgba(0, 243, 255, 0.1); border-bottom: 1px solid #16567e; display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
+                        <div
+                            style="display: flex; gap: 16px; flex: 1; justify-content: flex-start; align-items: center; min-width: 0;">
+                            <div
+                                style="color: #ffffff; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                {{ topologyAlertTitle }}</div>
                             <div style="font-size: 12px; color: #86a6bc; white-space: nowrap;">按当前时间范围展示，发生时间倒序</div>
                         </div>
 
                         <div style="flex: 0 0 auto; text-align: right;">
-                            <button @click="systemAlertModalVisible = false" style="background: none; border: none; color: #5e8baf; font-size: 24px; cursor: pointer;">×</button>
+                            <button @click="systemAlertModalVisible = false"
+                                style="background: none; border: none; color: #5e8baf; font-size: 24px; cursor: pointer;">×</button>
                         </div>
                     </div>
-                    
-                    <div class="modal-body" style="flex: 1; padding: 20px; display: flex; flex-direction: column; overflow: hidden;">
-                        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;">
+
+                    <div class="modal-body"
+                        style="flex: 1; padding: 20px; display: flex; flex-direction: column; overflow: hidden;">
+                        <div
+                            style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;">
                             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                                 <span style="font-size: 12px; color: #86a6bc;">告警状态</span>
                                 <div v-for="status in ['未领取', '处理中', '已关闭']" :key="status"
-                                    @click="toggleMultiFilter('alertStatusFilter', status)"
-                                    :style="{
+                                    @click="toggleMultiFilter('alertStatusFilter', status)" :style="{
                                         cursor: 'pointer',
                                         padding: '4px 10px',
                                         fontSize: '12px',
@@ -197,8 +216,7 @@
                             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                                 <span style="font-size: 12px; color: #86a6bc;">告警级别</span>
                                 <div v-for="level in alertLevelOptions" :key="level"
-                                    @click="toggleMultiFilter('alertLevelFilter', level)"
-                                    :style="{
+                                    @click="toggleMultiFilter('alertLevelFilter', level)" :style="{
                                         cursor: 'pointer',
                                         padding: '4px 10px',
                                         fontSize: '12px',
@@ -227,34 +245,59 @@
                                 <table style="width: 100%; border-collapse: collapse; color: #fff; font-size: 13px;">
                                     <thead style="position: sticky; top: 0; z-index: 10;">
                                         <tr style="background: rgba(22, 86, 126, 0.95);">
-                                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 110px;">告警ID</th>
-                                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 70px;">级别</th>
-                                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e;">告警内容</th>
-                                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 140px;">告警发生时间</th>
-                                            <th style="padding: 10px; text-align: center; border-bottom: 1px solid #16567e; width: 90px;">状态</th>
+                                            <th
+                                                style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 110px;">
+                                                告警ID</th>
+                                            <th
+                                                style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 70px;">
+                                                级别</th>
+                                            <th
+                                                style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e;">
+                                                告警内容</th>
+                                            <th
+                                                style="padding: 10px; text-align: left; border-bottom: 1px solid #16567e; width: 140px;">
+                                                告警发生时间</th>
+                                            <th
+                                                style="padding: 10px; text-align: center; border-bottom: 1px solid #16567e; width: 90px;">
+                                                状态</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr v-for="alert in pagedSystemAlerts" :key="alert.id">
-                                            <td style="padding: 10px; border-bottom: 1px solid #16567e; color: #5e8baf;">#{{ alert.id }}</td>
+                                            <td
+                                                style="padding: 10px; border-bottom: 1px solid #16567e; color: #5e8baf;">
+                                                #{{ alert.id }}</td>
                                             <td style="padding: 10px; border-bottom: 1px solid #16567e;">
-                                                <span :style="{ color: alert.level === 'P0' ? '#ff3b3b' : (alert.level === 'P1' ? '#ff8a5c' : (alert.level === 'P2' ? '#ffca63' : '#3ed6c6')) }">{{ alert.level }}</span>
+                                                <span
+                                                    :style="{ color: alert.level === 'P0' ? '#ff3b3b' : (alert.level === 'P1' ? '#ff8a5c' : (alert.level === 'P2' ? '#ffca63' : '#3ed6c6')) }">{{
+                                                    alert.level }}</span>
                                             </td>
-                                            <td style="padding: 10px; border-bottom: 1px solid #16567e; line-height: 1.6;">{{ alert.content }}</td>
-                                            <td style="padding: 10px; border-bottom: 1px solid #16567e; color: #5e8baf;">{{ alert.time }}</td>
-                                            <td style="padding: 10px; border-bottom: 1px solid #16567e; text-align: center;">
-                                                <span :style="{ color: alert.status === '未领取' ? '#ff6a6a' : (alert.status === '处理中' ? '#ffca63' : '#3ed6c6') }">{{ alert.status }}</span>
+                                            <td
+                                                style="padding: 10px; border-bottom: 1px solid #16567e; line-height: 1.6;">
+                                                {{ alert.content }}</td>
+                                            <td
+                                                style="padding: 10px; border-bottom: 1px solid #16567e; color: #5e8baf;">
+                                                {{ alert.time }}</td>
+                                            <td
+                                                style="padding: 10px; border-bottom: 1px solid #16567e; text-align: center;">
+                                                <span
+                                                    :style="{ color: alert.status === '未领取' ? '#ff6a6a' : (alert.status === '处理中' ? '#ffca63' : '#3ed6c6') }">{{
+                                                    alert.status }}</span>
                                             </td>
                                         </tr>
                                         <tr v-if="pagedSystemAlerts.length === 0">
-                                            <td colspan="5" style="padding: 24px 10px; text-align: center; color: #86a6bc; border-bottom: 1px solid #16567e;">当前筛选条件下暂无告警</td>
+                                            <td colspan="5"
+                                                style="padding: 24px 10px; text-align: center; color: #86a6bc; border-bottom: 1px solid #16567e;">
+                                                当前筛选条件下暂无告警</td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; color: #5e8baf; font-size: 13px;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; color: #5e8baf; font-size: 13px;">
                                 <div>
-                                    共 <span style="color: #00f3ff; font-weight: bold;">{{ filteredSystemAlerts.length }}</span> 条
+                                    共 <span style="color: #00f3ff; font-weight: bold;">{{ filteredSystemAlerts.length
+                                        }}</span> 条
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <button @click="alertCurrentPage--" :disabled="alertCurrentPage === 1"
@@ -264,7 +307,8 @@
                                     </button>
 
                                     <div style="display: flex; gap: 8px;">
-                                        <div v-for="page in systemAlertsTotalPages" :key="page" @click="alertCurrentPage = page"
+                                        <div v-for="page in systemAlertsTotalPages" :key="page"
+                                            @click="alertCurrentPage = page"
                                             style="width: 28px; height: 28px; display: flex; justify-content: center; align-items: center; border-radius: 4px; cursor: pointer; transition: all 0.2s; font-size: 14px;"
                                             :style="{
                                                 background: alertCurrentPage === page ? 'rgba(0, 243, 255, 0.3)' : 'rgba(0, 243, 255, 0.05)',
@@ -275,7 +319,8 @@
                                         </div>
                                     </div>
 
-                                    <button @click="alertCurrentPage++" :disabled="alertCurrentPage === systemAlertsTotalPages"
+                                    <button @click="alertCurrentPage++"
+                                        :disabled="alertCurrentPage === systemAlertsTotalPages"
                                         style="background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.3); color: #00f3ff; padding: 4px 10px; border-radius: 4px; cursor: pointer; outline: none;"
                                         :style="{ opacity: alertCurrentPage === systemAlertsTotalPages ? 0.5 : 1, cursor: alertCurrentPage === systemAlertsTotalPages ? 'not-allowed' : 'pointer' }">
                                         &gt;
